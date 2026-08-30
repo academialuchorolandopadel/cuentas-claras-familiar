@@ -225,6 +225,16 @@
         <div class="kpi"><div class="k">💵 Efectivo</div><div class="v num" id="kpiEfectivo">₲ 0</div></div>
         <div class="kpi"><div class="k">🏦 En cuenta</div><div class="v num" id="kpiCuenta">₲ 0</div></div>
       </div>
+      <h2 class="sec">Pasar entre efectivo y cuenta</h2>
+      <div class="card">
+        <div class="field">
+          <label class="lab" for="t-amount">Importe</label>
+          <div class="amount-input"><span class="cur">₲</span><input id="t-amount" type="number" inputmode="numeric" placeholder="0" /></div>
+        </div>
+        <div class="field"><label class="lab" for="t-dir">Movimiento</label><select id="t-dir"></select></div>
+        <div class="field"><label class="lab" for="t-date">Fecha</label><input id="t-date" type="date" /></div>
+        <button class="btn" id="saveTransferBtn">Registrar traspaso</button>
+      </div>
       <h2 class="sec">Cargar ingreso</h2>
       <div class="card">
         <div class="field">
@@ -336,6 +346,7 @@ const fmt = n => "₲ " + Math.round(n).toLocaleString(LOCALE);   // Guaraní, s
 
 const PAYMENTS=["Efectivo","Débito","Crédito","Transferencia"];
 const INCOME_PAYMENTS=["Efectivo","Transferencia"];
+const TRANSFERS=["De Efectivo a Cuenta","De Cuenta a Efectivo"];
 const DEFAULT_CATEGORIES=["Comida","Transporte","Ocio","Servicios","Salud","Hogar","Otros"];
 const CAT_STYLE={
   "Comida":{color:"var(--c-comida)",icon:"🍽️"},"Transporte":{color:"var(--c-transporte)",icon:"🚗"},
@@ -367,7 +378,7 @@ function normalize(s){return (s||"").toLowerCase().normalize("NFD").replace(/[\u
 function classify(desc){const t=normalize(desc);for(const r of store.config.rules){if(t.includes(normalize(r.kw)))return r.cat;}return "Otros";}
 
 /* Derivados — el saldo SIEMPRE se calcula, nunca se guarda */
-const isExp=t=>t.type==="expense", isInc=t=>t.type==="income";
+const isExp=t=>t.type==="expense", isInc=t=>t.type==="income", isTransfer=t=>t.type==="transfer";
 function totalIncome(){return store.tx.filter(isInc).reduce((s,t)=>s+t.amount,0);}
 function totalExpense(){return store.tx.filter(isExp).reduce((s,t)=>s+t.amount,0);}
 function saldo(){return totalIncome()-totalExpense();}
@@ -382,9 +393,11 @@ function makeDemoBackend(){
   const d=n=>{const x=new Date(today);x.setDate(x.getDate()-n);return x.toISOString().slice(0,10);};
   const ex=(amount,description,category,payment,day)=>({id:"x"+(seq++),type:"expense",amount,description,category,payment,date:d(day)});
   const inc=(amount,description,payment,day)=>({id:"x"+(seq++),type:"income",amount,description,payment,date:d(day)});
+  const tr=(amount,from,to,day)=>({id:"x"+(seq++),type:"transfer",amount,from,to,date:d(day)});
   store.tx=[
     inc(4500000,"Sueldo","Transferencia",15),
     inc(600000,"Venta usados","Efectivo",8),
+    tr(200000,"Cuenta","Efectivo",3),
     ex(320000,"Súper","Comida","Débito",1),
     ex(250000,"Nafta","Transporte","Crédito",2),
     ex(35000,"Café con Ana","Comida","Efectivo",2),
@@ -496,7 +509,8 @@ function renderForm(){
   fillSelect(document.getElementById("f-cat"),store.config.categories);
   fillSelect(document.getElementById("f-pay"),PAYMENTS);
   fillSelect(document.getElementById("i-pay"),INCOME_PAYMENTS);
-  for(const id of ["f-date","i-date"]){const el=document.getElementById(id);if(!el.value)el.value=new Date().toISOString().slice(0,10);}
+  fillSelect(document.getElementById("t-dir"),TRANSFERS);
+  for(const id of ["f-date","i-date","t-date"]){const el=document.getElementById(id);if(!el.value)el.value=new Date().toISOString().slice(0,10);}
 }
 
 /* Bolsillos: efectivo vs cuenta. Todo lo que NO es efectivo cuenta como "cuenta"
@@ -504,6 +518,12 @@ function renderForm(){
 function buckets(){
   let efectivo=0, cuenta=0;
   for(const t of store.tx){
+    if(isTransfer(t)){
+      // mueve entre bolsillos sin cambiar el saldo total
+      if(t.from==="Efectivo"){ efectivo-=t.amount; cuenta+=t.amount; }
+      else { cuenta-=t.amount; efectivo+=t.amount; }
+      continue;
+    }
     const amt = isInc(t)? t.amount : -t.amount;
     if(t.payment==="Efectivo") efectivo+=amt; else cuenta+=amt;
   }
@@ -543,13 +563,19 @@ function renderMovs(){
   list.innerHTML="";
   for(const day of Object.keys(byDay)){
     const g=document.createElement("div");g.className="daygroup";
-    const net=byDay[day].reduce((s,e)=>s+(isInc(e)?e.amount:-e.amount),0);
+    const net=byDay[day].reduce((s,e)=>s+(isInc(e)?e.amount:isExp(e)?-e.amount:0),0);
     const dd=new Date(day+"T00:00:00");
     const head=document.createElement("div");head.className="dayhead";
     head.innerHTML=`<span>${dd.toLocaleDateString(LOCALE,{weekday:"long",day:"numeric",month:"long"})}</span><span class="num">${net>=0?"+":""}${fmt(net)}</span>`;
     g.appendChild(head);
     for(const e of byDay[day]){
-      if(isInc(e)){
+      if(isTransfer(e)){
+        const row=document.createElement("div");row.className="tx";row.onclick=()=>openEdit(e.id);
+        row.innerHTML=`<div class="ic" style="background:var(--surface-2)">🔄</div>
+          <div class="meta"><div class="desc">Traspaso</div><div class="sub">${e.from} → ${e.to}</div></div>
+          <div class="val num" style="color:var(--muted);font-weight:500">${fmt(e.amount)}</div>`;
+        g.appendChild(row);
+      }else if(isInc(e)){
         const row=document.createElement("div");row.className="tx";row.onclick=()=>openEdit(e.id);
         row.innerHTML=`<div class="ic" style="background:var(--brand-soft)">💰</div>
           <div class="meta"><div class="desc">${escapeHtml(e.description||"Ingreso")}</div><div class="sub">Ingreso</div></div>
@@ -672,6 +698,16 @@ document.getElementById("saveIncomeBtn").onclick=async ()=>{
   document.getElementById("i-amount").value="";document.getElementById("i-desc").value="";
 };
 
+document.getElementById("saveTransferBtn").onclick=async ()=>{
+  const amount=parseFloat(document.getElementById("t-amount").value);
+  if(!amount||amount<=0){flash(document.getElementById("t-amount"));return;}
+  const [from,to] = document.getElementById("t-dir").value==="De Efectivo a Cuenta"
+    ? ["Efectivo","Cuenta"] : ["Cuenta","Efectivo"];
+  await backend.add({type:"transfer",amount,from,to,date:document.getElementById("t-date").value});
+  document.getElementById("t-amount").value="";
+  document.querySelector('nav button[data-go="mov"]').click();
+};
+
 document.getElementById("addCatBtn").onclick=()=>{
   const v=document.getElementById("newCat").value.trim();
   if(v&&!store.config.categories.includes(v)){store.config.categories.splice(store.config.categories.length-1,0,v);document.getElementById("newCat").value="";backend.persistConfig();renderAll();}
@@ -691,8 +727,12 @@ function exportCSV(){
   const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
   const header=["Fecha","Tipo","Descripción","Categoría","Medio de pago","Importe"];
   const rows=items.map(t=>[
-    t.date, isInc(t)?"Ingreso":"Gasto", t.description||"",
-    isInc(t)?"":(t.category||""), t.payment||"", Math.round(t.amount)
+    t.date,
+    isInc(t)?"Ingreso":isTransfer(t)?"Traspaso":"Gasto",
+    isTransfer(t)?"Traspaso entre bolsillos":(t.description||""),
+    isInc(t)||isTransfer(t)?"":(t.category||""),
+    isTransfer(t)?`${t.from} → ${t.to}`:(t.payment||""),
+    Math.round(t.amount)
   ].map(q).join(sep));
   const csv="\uFEFF"+[header.map(q).join(sep),...rows].join("\r\n");
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
@@ -707,18 +747,31 @@ document.getElementById("exportBtn").onclick=exportCSV;
 function openEdit(id){
   const e=store.tx.find(x=>x.id===id);if(!e)return;
   editingId=id;editingType=e.type;
-  document.getElementById("modalTitle").textContent= isInc(e)?"Editar ingreso":"Editar gasto";
   document.getElementById("e-amount").value=e.amount;
-  document.getElementById("e-desc").value=e.description;
   document.getElementById("e-date").value=e.date;
   const catField=document.getElementById("e-cat-field");
   const payField=document.getElementById("e-pay-field");
-  if(isInc(e)){
+  const descField=document.getElementById("e-desc").closest(".field");
+  if(isTransfer(e)){
+    document.getElementById("modalTitle").textContent="Editar traspaso";
+    descField.classList.add("hidden");
+    catField.classList.add("hidden");
+    payField.classList.remove("hidden");
+    payField.querySelector("label").textContent="Movimiento";
+    const dir = e.from==="Efectivo" ? "De Efectivo a Cuenta" : "De Cuenta a Efectivo";
+    fillSelect(document.getElementById("e-pay"),TRANSFERS,dir);
+  }else if(isInc(e)){
+    document.getElementById("modalTitle").textContent="Editar ingreso";
+    descField.classList.remove("hidden");
+    document.getElementById("e-desc").value=e.description;
     catField.classList.add("hidden");                 // los ingresos no tienen categoría
     payField.classList.remove("hidden");
     payField.querySelector("label").textContent="Entra a";
     fillSelect(document.getElementById("e-pay"),INCOME_PAYMENTS,e.payment);
   }else{
+    document.getElementById("modalTitle").textContent="Editar gasto";
+    descField.classList.remove("hidden");
+    document.getElementById("e-desc").value=e.description;
     catField.classList.remove("hidden");
     payField.classList.remove("hidden");
     payField.querySelector("label").textContent="Medio de pago";
@@ -730,12 +783,22 @@ function openEdit(id){
 function closeModal(){document.getElementById("modal").classList.remove("show");editingId=null;}
 document.getElementById("modal").addEventListener("click",ev=>{if(ev.target.id==="modal")closeModal();});
 document.getElementById("updateBtn").onclick=async ()=>{
-  const pay=document.getElementById("e-pay").value;
   let amount=parseFloat(document.getElementById("e-amount").value);
+  const date=document.getElementById("e-date").value;
+
+  if(editingType==="transfer"){
+    if(!amount||amount<=0){ flash(document.getElementById("e-amount")); return; }
+    const [from,to] = document.getElementById("e-pay").value==="De Efectivo a Cuenta"
+      ? ["Efectivo","Cuenta"] : ["Cuenta","Efectivo"];
+    await backend.update(editingId,{amount,from,to,date});
+    closeModal(); return;
+  }
+
+  const pay=document.getElementById("e-pay").value;
   const creditoOK = (editingType==="expense" && pay==="Crédito");
   if(creditoOK){ if(isNaN(amount)||amount<0) amount=0; }
   else if(!amount||amount<=0){ flash(document.getElementById("e-amount")); return; }
-  const patch={amount,description:document.getElementById("e-desc").value.trim(),date:document.getElementById("e-date").value};
+  const patch={amount,description:document.getElementById("e-desc").value.trim(),date};
   patch.payment=pay;                         // pago para ingreso y gasto
   if(editingType==="expense")patch.category=document.getElementById("e-cat").value;
   await backend.update(editingId,patch);
