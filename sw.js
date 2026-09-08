@@ -1,45 +1,58 @@
-/* Service worker mínimo.
-   Estrategia elegida a propósito: RED PRIMERO para la navegación.
-   Motivo: que tu familia nunca quede pegada a una versión vieja de la app
-   cuando vos subís una actualización al repo. Si no hay conexión, cae al
-   caché para que igual abra. Los íconos y fuentes se sirven desde caché. */
-const CACHE = "cuentas-v1";
-const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+// Service worker de la Pizarra Táctica (Academia LR).
+// Estrategia: cache-first para lo esencial de la app (arranca instantáneo y funciona sin
+// conexión), con revalidación en segundo plano (stale-while-revalidate) para mantenerlo
+// al día en cada visita con internet.
 
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+const CACHE_NAME = 'pizarra-lr-v1';
+const CORE_ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './privacy.html',
+  './icon-32.png',
+  './icon-180.png',
+  './icon-192.png',
+  './icon-512.png',
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(CORE_ASSETS))
+      .then(() => self.skipWaiting())
+  );
 });
 
-self.addEventListener("activate", e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(
+        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+      ))
       .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener("fetch", e => {
-  const req = e.request;
-  if (req.method !== "GET") return;
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
 
-  // Navegación (abrir la app) → red primero, caché de respaldo
-  if (req.mode === "navigate") {
-    e.respondWith(
-      fetch(req).then(res => {
-        caches.open(CACHE).then(c => c.put("./index.html", res.clone()));
-        return res;
-      }).catch(() => caches.match("./index.html"))
-    );
-    return;
-  }
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      const networkFetch = fetch(req)
+        .then((resp) => {
+          // solo cacheamos respuestas válidas del propio origen (evita cachear errores o CORS opacos raros)
+          if (resp && resp.status === 200 && resp.type === 'basic') {
+            const copy = resp.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          }
+          return resp;
+        })
+        .catch(() => cached); // sin conexión: si había algo en caché, listo; si no, se propaga el error
 
-  // Resto (íconos, fuentes) → caché primero, y si no, red
-  e.respondWith(
-    caches.match(req).then(hit => hit || fetch(req).then(res => {
-      if (res.ok && (req.url.startsWith(self.location.origin) || req.url.includes("gstatic"))) {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(req, copy));
-      }
-      return res;
-    }).catch(() => hit))
+      // cache-first: si ya lo teníamos, lo servimos al toque y actualizamos atrás;
+      // si no, esperamos la red (y de paso queda cacheado para la próxima)
+      return cached || networkFetch;
+    })
   );
 });
