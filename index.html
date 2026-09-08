@@ -1,2109 +1,871 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Pizarra Táctica · Pádel</title>
-<meta name="theme-color" content="#0a1626">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pizarra LR">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Cuentas Claras</title>
 <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F6E5A">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cuentas">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* alto del header y el banco: variables (no fijo) para poder achicarlos en landscape
-       sin tener que redefinir toda la estructura de filas del grid */
-    --topbar-h:60px;
-    --bench-h:64px;
-    --steps-dim:168px;
-    /* navy anclado en el color exacto muestreado del logo de la Academia LR (#08203e) */
-    --navy-bg:#08203e;
-    --navy-bg-2:#0a274c;
-    --navy-panel:#0c2e59;
-    --navy-panel-2:#0f3b72;
-    --navy-line:#114381;
-    --court-blue:#1d5fa3;
-    --court-blue-2:#154a82;
-    --court-blue-3:#0f3a68;
-    --line-white:#f4f7fa;
-    /* amarillo-pelota real: se usa SOLO para la pelota y como opción de color de dibujo,
-       no como acento de marca (para eso está el dorado de abajo) */
-    --ball:#d6f24c;
-    --ball-dim:#a9c23a;
-    /* dorado muestreado del logo real de la Academia LR: acento de marca en toda la UI */
-    --gold:#a47122;
-    --gold-bright:#dfa243;
-    --gold-dim:#714e17;
-    --team-a:#ff5a36;
-    --team-b:#16a085;
-    --muted:#8fa6be;
-    --muted-2:#5d7996;
-    --danger:#ff6161;
-    --font-display:'Bebas Neue', 'Arial Narrow', Impact, sans-serif;
-    --font-body:'Inter', system-ui, -apple-system, sans-serif;
-    --font-mono:'JetBrains Mono', 'SFMono-Regular', monospace;
-    --radius:14px;
+    --bg:#EAE7DF;--surface:#FBFAF6;--surface-2:#F3F1EA;--ink:#1C1B17;--muted:#7A766C;
+    --line:#DAD6CB;--brand:#1F6E5A;--brand-soft:#E2EFE9;--accent:#C25A3C;--pos:#1F6E5A;
+    --shadow:0 1px 2px rgba(28,27,23,.06),0 8px 24px rgba(28,27,23,.06);--r:16px;
+    --c-comida:#C25A3C;--c-transporte:#3A6EA5;--c-ocio:#9A5BB0;--c-servicios:#1F6E5A;
+    --c-salud:#C9457A;--c-hogar:#B0852F;--c-otros:#7A766C;
   }
-  *{box-sizing:border-box;}
-  html,body{
-    margin:0; padding:0; height:100%; width:100%;
-    background:
-      radial-gradient(ellipse 120% 80% at 50% -10%, #16324f 0%, transparent 55%),
-      radial-gradient(ellipse 100% 60% at 50% 110%, #0d2038 0%, transparent 60%),
-      var(--navy-bg);
-    color:var(--line-white);
-    font-family:var(--font-body);
-    overflow:hidden;
-    -webkit-tap-highlight-color:transparent;
-  }
-  body.reduced-motion *{ transition:none !important; animation:none !important; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
+  .num{font-family:"Space Grotesk",Inter,sans-serif;font-feature-settings:"tnum" 1;letter-spacing:-.02em}
+  .app{max-width:520px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;background:var(--bg)}
+  .hidden{display:none !important}
+  .neg{color:var(--accent) !important}
 
-  #app{
-    display:grid;
-    height:100%; width:100%;
-    grid-template-columns:84px 1fr var(--steps-dim);
-    grid-template-rows:var(--topbar-h) 1fr var(--bench-h);
-    grid-template-areas:
-      "topbar topbar topbar"
-      "tools  court  steps"
-      "tools  bench  steps";
-    gap:0;
-  }
-  @media (max-width:760px){
-    :root{ --topbar-h:56px; --bench-h:58px; --steps-dim:96px; }
-    #app{
-      grid-template-columns:1fr;
-      grid-template-rows:var(--topbar-h) 1fr var(--bench-h) 68px var(--steps-dim);
-      grid-template-areas:
-        "topbar"
-        "court"
-        "bench"
-        "tools"
-        "steps";
-    }
-    #steps{ flex-direction:row !important; }
-    #stepsContent{ flex-direction:row !important; overflow-x:auto; overflow-y:hidden; }
-    #tools{ flex-direction:row !important; justify-content:flex-start; overflow-x:auto; overflow-y:hidden; }
-    #tools .tool-group{ flex-direction:row !important; }
-    /* la barra superior no entra completa en un celular angosto: se achica y
-       se le permite encoger (min-width:0 es el fix clásico de overflow en flex/grid) */
-    #topbar{ min-width:0; padding:0 8px !important; gap:4px; overflow-x:auto; }
-    .team-pills{ display:none !important; }
-    .brand h1{ font-size:16px !important; }
-    .top-actions{ gap:4px !important; flex:none; }
-    .icon-btn{ width:32px !important; height:32px !important; }
-    .icon-btn svg{ width:15px !important; height:15px !important; }
-    #tools{ padding:4px 0; }
-    .tool-btn{ width:54px !important; height:54px !important; }
-    .tool-btn svg{ width:22px !important; height:22px !important; }
-  }
+  /* Acceso */
+  #auth{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+  .auth-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:26px 22px;box-shadow:var(--shadow)}
+  .auth-brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;margin-bottom:4px}
+  .auth-brand .dot{width:30px;height:30px;border-radius:9px;background:var(--brand);display:grid;place-items:center;color:#fff;font-weight:700}
+  .auth-sub{color:var(--muted);font-size:13.5px;margin-bottom:22px}
+  #auth .field{margin-bottom:13px}
+  #auth label.lab{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:500}
+  #auth input{width:100%;font:inherit;font-size:16px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:12px 13px;outline:none}
+  #auth input:focus{border-color:var(--brand);background:#fff}
+  .auth-err{font-size:12.5px;color:var(--accent);min-height:16px;margin:2px 2px 10px}
+  .auth-switch{text-align:center;font-size:13px;color:var(--muted);margin-top:16px}
+  .auth-switch button{background:none;border:0;color:var(--brand);font:inherit;font-weight:600;cursor:pointer}
 
-  /* Celular en horizontal: poca altura disponible, así que achicamos todo el "chrome"
-     fijo (header, banco, herramientas) para dejarle el máximo lugar posible a la cancha. */
-  @media (max-height:500px) and (orientation:landscape){
-    :root{ --topbar-h:44px !important; --bench-h:46px !important; }
-    #topbar{ padding:0 10px !important; }
-    .brand h1{ font-size:15px !important; }
-    .team-pills{ display:none !important; }
-    .icon-btn{ width:30px !important; height:30px !important; }
-    .icon-btn svg{ width:14px !important; height:14px !important; }
-    #bench{ padding:3px 10px !important; justify-content:center !important; gap:6px !important; }
-    .bench-chip{ width:36px !important; height:36px !important; }
-    .bench-chip canvas{ width:36px !important; height:36px !important; }
-    #tools{ padding:4px 0 !important; gap:4px !important; }
-    .tool-btn{ width:42px !important; height:42px !important; border-radius:9px !important; }
-    .tool-btn svg{ width:17px !important; height:17px !important; }
-    .tool-btn span{ font-size:7px !important; }
-    .rail-divider{ margin:2px 0 !important; }
-    .swatch{ width:16px !important; height:16px !important; }
-    #steps .scoreboard{ margin:6px 6px 4px !important; padding:4px 6px !important; }
-    #steps .play-btn{ margin:0 6px 4px !important; padding:6px !important; font-size:12px !important; }
-  }
+  .demo-banner{background:#FBE9C6;color:#7a5a12;font-size:12px;text-align:center;padding:6px;font-weight:500}
 
-  /* ---------- BANCO (piezas sin colocar) ---------- */
-  #bench{
-    grid-area:bench;
-    display:flex; align-items:center; gap:8px;
-    padding:8px 12px; overflow-x:auto; overflow-y:hidden; min-width:0;
-    background:linear-gradient(180deg, var(--navy-panel), var(--navy-bg-2));
-    border-top:1px solid var(--navy-line); border-bottom:1px solid var(--navy-line);
-    z-index:12;
-  }
-  .bench-chip{
-    flex:none; width:44px; height:44px; border-radius:10px;
-    background:rgba(255,255,255,.04); border:1px solid var(--navy-line);
-    display:flex; align-items:center; justify-content:center;
-    cursor:grab; touch-action:none; transition:opacity .15s ease;
-  }
-  .bench-chip canvas{ width:44px; height:44px; display:block; }
-  .bench-chip.dragging-source{ opacity:.3; }
-  .bench-ghost{ position:fixed; transform:translate(-50%,-50%); pointer-events:none; z-index:500; opacity:.9; }
-  .bench-empty{
-    color:var(--muted-2); font-size:12px; font-family:var(--font-body); white-space:nowrap;
-  }
+  header{padding:16px 20px;position:sticky;top:0;z-index:5;background:var(--bg)}
+  .topline{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .brandmark{display:flex;align-items:center;gap:9px;font-weight:600;font-size:15px}
+  .dot{width:22px;height:22px;border-radius:7px;background:var(--brand);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700}
+  .user{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);padding:5px 10px;border-radius:99px;display:flex;align-items:center;gap:8px;max-width:60%}
+  .user span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .user button{background:none;border:0;color:var(--accent);font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;padding:0;flex:none}
+  .hero{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+  .hero .label{font-size:12.5px;color:var(--muted)}
+  .hero .amount{font-size:36px;font-weight:700;margin:5px 0 12px}
+  .hero .amount small{font-size:18px;color:var(--muted);font-weight:500}
+  .hero-sub{display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--line);padding-top:11px;margin-bottom:12px;font-size:12.5px;color:var(--muted)}
+  .hero-sub b{color:var(--ink);font-weight:600}
+  .hero-flow{display:flex;justify-content:space-between;gap:12px}
+  .pos{color:var(--pos) !important}
+  .month-nav{display:flex;align-items:center;gap:2px}
+  .month-nav button{background:none;border:0;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:8px;line-height:1}
+  .month-nav button:hover{background:var(--surface-2);color:var(--ink)}
+  .month-nav span{font-size:12.5px;min-width:84px;text-align:center;text-transform:capitalize;color:var(--ink);font-weight:600}
+  .stack{display:flex;height:9px;border-radius:99px;overflow:hidden;background:var(--surface-2);gap:2px}
+  .stack i{display:block;height:100%}
+  .stack-legend{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:12px}
+  .stack-legend div{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .stack-legend b{color:var(--ink);font-weight:600}
+  .swatch{width:9px;height:9px;border-radius:3px;flex:none}
 
-  /* ---------- TOP BAR ---------- */
-  #topbar{
-    grid-area:topbar;
-    display:flex; align-items:center; justify-content:space-between;
-    padding:0 14px;
-    background:linear-gradient(180deg, var(--navy-panel-2), var(--navy-panel));
-    border-bottom:1px solid var(--navy-line);
-    z-index:20;
-  }
-  .brand{ display:flex; align-items:center; gap:10px; }
-  .brand .lr-logo{
-    width:28px; height:28px; border-radius:8px; flex:none;
-    box-shadow:0 0 10px rgba(164,113,34,.4);
-  }
-  .brand h1{
-    font-family:var(--font-display); letter-spacing:.06em;
-    font-size:22px; margin:0; font-weight:400; color:var(--line-white);
-    white-space:nowrap;
-  }
-  .team-pills{ display:flex; gap:6px; align-items:center; }
-  .team-pill{
-    display:flex; align-items:center; gap:6px;
-    padding:5px 10px 5px 6px; border-radius:999px;
-    background:rgba(255,255,255,.05); border:1px solid var(--navy-line);
-    font-size:12px; font-weight:600; color:var(--muted);
-    max-width:110px; overflow:hidden;
-  }
-  .team-pill .dot{ width:9px; height:9px; border-radius:50%; flex:none; }
-  .team-pill span{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .top-actions{ display:flex; gap:8px; }
-  .icon-btn{
-    display:flex; align-items:center; justify-content:center;
-    width:38px; height:38px; border-radius:10px;
-    background:rgba(255,255,255,.07); border:1px solid var(--navy-line);
-    color:var(--line-white); cursor:pointer; transition:all .15s ease; flex:none;
-  }
-  .icon-btn:hover{ background:rgba(255,255,255,.13); border-color:var(--muted-2); }
-  .icon-btn.primary{ background:var(--gold); border-color:var(--gold); color:#122; }
-  .icon-btn.primary:hover{ filter:brightness(1.08); }
-  .icon-btn svg{ width:18px; height:18px; }
+  main{flex:1;padding:4px 20px 100px;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .view{display:none}.view.active{display:block}
+  h2.sec{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:22px 2px 10px;font-weight:600}
 
-  /* ---------- TOOLS RAIL ---------- */
-  #tools{
-    grid-area:tools;
-    display:flex; flex-direction:column; align-items:center;
-    gap:10px; padding:14px 0; min-width:0;
-    background:linear-gradient(180deg, var(--navy-panel), var(--navy-bg-2));
-    border-right:1px solid var(--navy-line);
-    z-index:15;
-  }
-  .tool-group{ display:flex; flex-direction:column; gap:6px; }
-  .tool-btn{
-    width:60px; height:60px; border-radius:13px;
-    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:3px;
-    background:rgba(255,255,255,.07); border:1px solid var(--navy-line);
-    color:var(--line-white); cursor:pointer; transition:all .15s ease;
-  }
-  .tool-btn svg{ width:24px; height:24px; }
-  .tool-btn span{ font-size:10px; font-weight:700; letter-spacing:.02em; }
-  .tool-btn:hover{ background:rgba(255,255,255,.13); border-color:var(--muted-2); }
-  .tool-btn.active{ background:var(--gold); color:#122; border-color:var(--gold); box-shadow:0 0 0 3px rgba(164,113,34,.28); }
-  .rail-divider{ width:36px; height:1px; background:var(--navy-line); margin:4px 0; }
-  .swatch-row{ display:flex; flex-direction:column; gap:7px; padding-top:4px; }
-  .swatch{
-    width:22px; height:22px; border-radius:50%; border:2px solid rgba(255,255,255,.15);
-    cursor:pointer; transition:transform .12s ease, border-color .12s ease;
-  }
-  .swatch.active{ border-color:var(--line-white); transform:scale(1.15); }
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+  .field{margin-bottom:14px}.field:last-child{margin-bottom:0}
+  label.lab{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:500}
+  input,select{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:12px 13px;outline:none;-webkit-appearance:none;appearance:none}
+  input:focus,select:focus{border-color:var(--brand);background:#fff}
+  .amount-input{position:relative}
+  .amount-input span.cur{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:17px}
+  .amount-input input{padding-left:32px;font-family:"Space Grotesk",sans-serif;font-size:20px;font-weight:600}
+  select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237A766C' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 13px center;padding-right:36px}
+  .row{display:flex;gap:10px}.row .field{flex:1}
+  .cat-hint{font-size:12px;color:var(--brand);margin-top:6px;display:none;align-items:center;gap:5px}
+  .cat-hint.show{display:flex}
+  .cred-hint{font-size:12px;color:var(--muted);background:var(--surface-2);border-radius:9px;padding:8px 10px;margin-bottom:12px;display:none}
+  .cred-hint.show{display:block}
+  .cred-hint b{color:var(--ink)}
+  .btn{width:100%;font:inherit;font-weight:600;font-size:15.5px;color:#fff;background:var(--brand);border:0;border-radius:12px;padding:14px;cursor:pointer;margin-top:4px;transition:transform .05s,filter .15s}
+  .btn:active{transform:scale(.99)}.btn:hover{filter:brightness(1.05)}
+  .btn[disabled]{opacity:.6;cursor:default}
+  .btn.sm{width:auto;padding:9px 14px;font-size:13.5px}
 
-  /* ---------- COURT ---------- */
-  #court-wrap{
-    grid-area:court;
-    display:flex; align-items:center; justify-content:center;
-    padding:16px; min-width:0; min-height:0; position:relative;
-  }
-  #court-frame{
-    /* debe coincidir con TOTAL_W_M/TOTAL_L_M del JS (10m+bandas) / (20m+bandas) = 14.2/24.2 */
-    position:relative; height:100%; aspect-ratio:14.2/24.2; max-width:100%;
-    filter:drop-shadow(0 18px 40px rgba(0,0,0,.5));
-  }
-  #courtCanvas{ width:100%; height:100%; display:block; border-radius:10px; touch-action:none; cursor:crosshair; }
-  #textInputOverlay{
-    position:absolute; transform:translate(-50%,-50%);
-    background:var(--navy-panel-2); border:1px solid var(--gold); border-radius:8px;
-    padding:4px 8px; z-index:30; display:none;
-  }
-  #textInputOverlay input{
-    background:transparent; border:none; outline:none; color:var(--line-white);
-    font-family:var(--font-body); font-size:13px; font-weight:600; width:110px;
-  }
+  .kpis{display:flex;gap:10px;margin-bottom:4px}
+  .kpi{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px}
+  .kpi .k{font-size:11.5px;color:var(--muted)}
+  .kpi .v{font-size:15px;font-weight:700;margin-top:3px}.kpi .v.num{font-size:16px}
 
-  /* ---------- STEPS RAIL ---------- */
-  #steps{
-    grid-area:steps;
-    display:flex; flex-direction:column; min-width:0;
-    background:linear-gradient(180deg, var(--navy-panel), var(--navy-bg-2));
-    border-left:1px solid var(--navy-line);
-    z-index:15; min-height:0;
-  }
-  #stepsContent{ display:flex; flex-direction:column; min-height:0; flex:1; overflow:hidden; }
-  .steps-toggle{
-    display:flex; align-items:center; justify-content:center; flex:none;
-    width:100%; height:30px; background:rgba(255,255,255,.05); border:none;
-    border-bottom:1px solid var(--navy-line); color:var(--muted); cursor:pointer;
-    transition:all .15s ease;
-  }
-  .steps-toggle:hover{ background:rgba(255,255,255,.1); color:var(--line-white); }
-  .steps-toggle svg{ width:18px; height:18px; transition:transform .2s ease; }
-  #steps.collapsed .steps-toggle svg{ transform:rotate(-90deg); }
-  #steps.collapsed #stepsContent{ display:none; }
-  @media (max-width:760px){
-    .steps-toggle{ width:30px; height:100%; border-bottom:none; border-right:1px solid var(--navy-line); }
-    .steps-toggle svg{ transform:rotate(-90deg); }
-    #steps.collapsed .steps-toggle svg{ transform:rotate(90deg); }
-  }
-  .scoreboard{
-    margin:12px 12px 6px; padding:8px 10px; border-radius:8px;
-    background:#04140e; border:1px solid #1f3a2c;
-    text-align:center;
-  }
-  .scoreboard .label{ font-size:9px; letter-spacing:.15em; color:#5d9a6f; font-family:var(--font-mono); }
-  .scoreboard .value{ font-family:var(--font-mono); font-weight:700; color:var(--gold); font-size:18px; text-shadow:0 0 8px rgba(223,162,67,.55); }
-  #stepList{
-    flex:1; overflow-y:auto; overflow-x:hidden;
-    display:flex; flex-direction:column; gap:8px; padding:4px 12px 12px;
-  }
-  .step-thumb{
-    position:relative; border-radius:8px; overflow:hidden; cursor:pointer;
-    border:2px solid var(--navy-line); aspect-ratio:1/2; background:var(--court-blue-3);
-    transition:border-color .15s ease;
-  }
-  .step-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .step-thumb.current{ border-color:var(--gold); }
-  .step-thumb .num{
-    position:absolute; top:3px; left:3px; background:rgba(0,0,0,.55);
-    font-family:var(--font-mono); font-size:10px; padding:1px 5px; border-radius:4px; color:var(--line-white);
-  }
-  .step-thumb .del{
-    position:absolute; top:3px; right:3px; width:16px; height:16px; border-radius:50%;
-    background:rgba(0,0,0,.55); color:var(--danger); display:flex; align-items:center; justify-content:center;
-    font-size:11px; line-height:1;
-  }
-  .step-controls{ display:flex; gap:6px; padding:0 12px 12px; }
-  .step-controls button{ flex:1; }
-  .play-btn{
-    margin:0 12px 8px; padding:10px; border-radius:10px; border:none;
-    background:var(--gold); color:#122; font-weight:700; font-family:var(--font-body);
-    font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
-    transition:filter .15s ease;
-  }
-  .play-btn:hover{ filter:brightness(1.08); }
-  .play-btn svg{ width:16px; height:16px; }
-  .add-step-btn{
-    margin:0 12px 4px; padding:9px; border-radius:10px;
-    background:rgba(255,255,255,.05); border:1px dashed var(--muted-2); color:var(--muted);
-    font-family:var(--font-body); font-size:12px; font-weight:600; cursor:pointer;
-  }
-  .add-step-btn:hover{ color:var(--line-white); border-color:var(--line-white); }
+  .daygroup{margin-bottom:18px}
+  .dayhead{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin:0 2px 8px;font-weight:500}
+  .dayhead .num{color:var(--ink);font-weight:600}
+  .tx{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:12px 13px;margin-bottom:7px;cursor:pointer;transition:border-color .15s}
+  .tx:hover{border-color:#c9c4b6}
+  .tx .ic{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;font-size:17px}
+  .tx .meta{flex:1;min-width:0}
+  .tx .desc{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tx .sub{font-size:12px;color:var(--muted)}
+  .tx .val{font-weight:600;font-size:15px}
+  .tx .val.income{color:var(--pos)}
+  .empty{text-align:center;color:var(--muted);padding:48px 20px;font-size:14px}
+  .empty .big{font-size:30px;margin-bottom:10px}
 
-  /* ---------- MODALS ---------- */
-  .modal-backdrop{
-    position:fixed; inset:0; background:rgba(5,12,20,.68); backdrop-filter:blur(2px);
-    display:none; align-items:center; justify-content:center; z-index:100;
-  }
-  .modal-backdrop.open{ display:flex; }
-  .modal{
-    background:var(--navy-panel-2); border:1px solid var(--navy-line); border-radius:var(--radius);
-    width:min(380px, 90vw); max-height:80vh; overflow-y:auto;
-    padding:20px; box-shadow:0 24px 60px rgba(0,0,0,.5);
-  }
-  .modal h2{ font-family:var(--font-display); letter-spacing:.04em; font-size:22px; margin:0 0 14px; font-weight:400; }
-  .field{ margin-bottom:14px; }
-  .field label{ display:block; font-size:11px; color:var(--muted); margin-bottom:5px; font-weight:600; letter-spacing:.02em; }
-  .field input[type=text]{
-    width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--navy-line);
-    background:var(--navy-bg-2); color:var(--line-white); font-family:var(--font-body); font-size:14px; outline:none;
-  }
-  .field input[type=text]:focus{ border-color:var(--gold); }
-  .field input[type=color]{
-    width:44px; height:34px; border-radius:8px; border:1px solid var(--navy-line); background:none; cursor:pointer; padding:2px;
-  }
-  .team-row{ display:flex; align-items:center; gap:10px; }
-  .cat-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
-  .chip{
-    padding:5px 11px; border-radius:999px; font-size:12px; font-weight:600; cursor:pointer;
-    background:rgba(255,255,255,.05); border:1px solid var(--navy-line); color:var(--muted);
-  }
-  .chip.active{ background:var(--gold); border-color:var(--gold); color:#122; }
-  .modal-actions{ display:flex; gap:8px; margin-top:18px; }
-  .btn{
-    flex:1; padding:10px; border-radius:9px; border:1px solid var(--navy-line); cursor:pointer;
-    font-family:var(--font-body); font-weight:700; font-size:13px; background:rgba(255,255,255,.04); color:var(--line-white);
-  }
-  .btn.primary{ background:var(--gold); color:#122; border-color:var(--gold); }
-  .btn.ghost{ background:transparent; }
-  .btn.danger{ color:var(--danger); border-color:rgba(255,97,97,.4); }
+  .statbars{display:flex;flex-direction:column;gap:13px}
+  .statrow .top{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;margin-bottom:6px;cursor:pointer}
+  .statrow .top .nm{font-weight:600;display:flex;align-items:center;gap:8px}
+  .statrow .top .nm.off{opacity:.4;text-decoration:line-through}
+  .statrow .pct{color:var(--muted);font-size:12px}
+  .bar{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px;transition:width .4s ease}
+  .toggle{font-size:11px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:2px 8px}
 
-  /* library */
-  .lib-cat{ margin-bottom:16px; }
-  .lib-cat h3{ font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--muted-2); margin:0 0 8px; text-transform:uppercase; }
-  .lib-item{
-    display:flex; align-items:center; gap:10px; padding:8px 9px; border-radius:9px;
-    background:rgba(255,255,255,.03); margin-bottom:6px; cursor:pointer; border:1px solid transparent;
-  }
-  .lib-item:hover{ border-color:var(--navy-line); background:rgba(255,255,255,.06); }
-  .lib-item img{ width:30px; aspect-ratio:1/2; border-radius:4px; object-fit:cover; background:var(--court-blue-3); flex:none; }
-  .lib-item .meta{ flex:1; min-width:0; }
-  .lib-item .meta .name{ font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .lib-item .meta .date{ font-size:10px; color:var(--muted-2); font-family:var(--font-mono); }
-  .lib-item .del{ color:var(--danger); font-size:16px; padding:4px; flex:none; }
-  .lib-item .share{ color:var(--muted); padding:4px; flex:none; display:flex; align-items:center; }
-  .lib-item .share:hover{ color:var(--gold); }
-  .lib-item .share svg{ width:17px; height:17px; }
-  .lib-empty{ color:var(--muted-2); font-size:13px; text-align:center; padding:20px 0; }
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:7px 8px 7px 12px;font-size:13.5px;font-weight:500;margin:0 6px 8px 0}
+  .chip .sw{width:9px;height:9px;border-radius:3px}
+  .chip button{border:0;background:var(--surface-2);width:20px;height:20px;border-radius:99px;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;display:grid;place-items:center}
+  .chip button:hover{background:#e6c9c0;color:var(--accent)}
+  .rule{display:flex;align-items:center;gap:8px;font-size:13.5px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:7px}
+  .rule .kw{font-weight:600;font-family:"Space Grotesk",sans-serif}
+  .rule .arrow{color:var(--muted)}.rule .cat{margin-left:auto;font-size:12px;color:var(--muted)}
+  .rule button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 4px}
+  .rule button:hover{color:var(--accent)}
+  .addrule{display:flex;gap:8px;margin-top:4px}.addrule input,.addrule select{flex:1}
 
-  /* toast */
-  #toast{
-    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
-    background:var(--navy-panel-2); border:1px solid var(--gold); color:var(--line-white);
-    padding:10px 18px; border-radius:999px; font-size:13px; font-weight:600;
-    opacity:0; pointer-events:none; transition:all .25s ease; z-index:200; white-space:nowrap;
-  }
-  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  nav{position:fixed;bottom:0;left:0;right:0;z-index:10;background:rgba(251,250,246,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;max-width:520px;margin:0 auto;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  nav button{flex:1;background:none;border:0;cursor:pointer;padding:8px 2px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:500;border-radius:12px}
+  nav button svg{width:21px;height:21px;stroke-width:2}
+  nav button.active{color:var(--brand)}nav button.active svg{stroke-width:2.4}
 
-  ::-webkit-scrollbar{ width:6px; height:6px; }
-  ::-webkit-scrollbar-thumb{ background:var(--navy-line); border-radius:3px; }
+  .modal{position:fixed;inset:0;z-index:20;background:rgba(28,27,23,.4);display:none;align-items:flex-end;justify-content:center}
+  .modal.show{display:flex}
+  .sheet{background:var(--surface);width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:18px 20px calc(20px + env(safe-area-inset-bottom));animation:up .25s ease}
+  @keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+  .sheet h3{font-size:16px;margin-bottom:16px}
+  .sheet .actions{display:flex;gap:10px;margin-top:8px}.sheet .actions .btn{margin-top:0}
+  .del{color:var(--accent);background:none;border:1px solid var(--line);width:auto;padding:14px 16px;flex:none;border-radius:12px;font:inherit;font-weight:600;cursor:pointer}
+  .grab{width:36px;height:4px;background:var(--line);border-radius:99px;margin:0 auto 14px}
 </style>
 </head>
 <body>
 
-<div id="app">
-  <div id="topbar">
-    <div class="brand">
-      <img class="lr-logo" src="icon-192.png" alt="Academia LR">
-      <h1>PIZARRA PÁDEL</h1>
-    </div>
-    <div class="team-pills">
-      <div class="team-pill" id="pillA"><span class="dot" style="background:var(--team-a)"></span><span id="pillAName">Equipo A</span></div>
-      <div class="team-pill" id="pillB"><span class="dot" style="background:var(--team-b)"></span><span id="pillBName">Equipo B</span></div>
-    </div>
-    <div class="top-actions">
-      <div class="icon-btn" id="btnNewBoard" title="Nueva pizarra">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
-      </div>
-      <div class="icon-btn" id="btnUndo" title="Deshacer">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-1"/></svg>
-      </div>
-      <div class="icon-btn" id="btnTeams" title="Equipos">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M14.5 15.2c2.6.4 4.5 2.3 4.5 4.8"/></svg>
-      </div>
-      <div class="icon-btn" id="btnLibrary" title="Biblioteca">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h11.5v17H6a2 2 0 0 0-2 2z"/><path d="M17.5 3v17"/></svg>
-      </div>
-      <div class="icon-btn" id="btnExport" title="Exportar imagen">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
-      </div>
-      <div class="icon-btn primary" id="btnSave" title="Guardar jugada">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
-      </div>
-    </div>
+<!-- ===================== ACCESO ===================== -->
+<div id="auth" class="hidden">
+  <div class="auth-card">
+    <div class="auth-brand"><span class="dot">₲</span> Cuentas Claras</div>
+    <div class="auth-sub" id="authSub">Ingresá para ver tus cuentas.</div>
+    <div class="field"><label class="lab" for="a-email">Correo</label><input id="a-email" type="email" autocomplete="email" placeholder="tu@correo.com" /></div>
+    <div class="field"><label class="lab" for="a-pass">Contraseña</label><input id="a-pass" type="password" autocomplete="current-password" placeholder="••••••••" /></div>
+    <div class="auth-err" id="authErr"></div>
+    <button class="btn" id="authBtn">Ingresar</button>
+    <div class="auth-switch" id="authSwitch">¿No tenés cuenta? <button id="switchMode">Crear una</button></div>
   </div>
+</div>
 
-  <div id="tools">
-    <div class="tool-group">
-      <button class="tool-btn active" data-tool="pincel" title="Dibujo libre">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c1-4 3-11 8-14 3-2 6 1 4 4-3 5-10 7-14 8z"/><path d="M14 7l3 3"/></svg>
-        <span>PINCEL</span>
-      </button>
-      <button class="tool-btn" data-tool="flecha" title="Dibujar flecha">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 19 5"/><path d="M9 5h10v10"/></svg>
-        <span>FLECHA</span>
-      </button>
-      <button class="tool-btn" data-tool="globo" title="Flecha curva (globo)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18C4 9 20 9 20 15"/><path d="M14 12.5 20 15l-4 4.5"/></svg>
-        <span>GLOBO</span>
-      </button>
-      <button class="tool-btn" data-tool="texto" title="Anotación de texto">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14"/><path d="M12 5v14"/><path d="M9 19h6"/></svg>
-        <span>TEXTO</span>
-      </button>
-      <button class="tool-btn" data-tool="borrar" title="Borrar elemento">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H8l-6-6a2 2 0 0 1 0-2.8L13.2 2A2 2 0 0 1 16 2l6 6a2 2 0 0 1 0 2.8L14 19"/><path d="m10 10 8 8"/></svg>
-        <span>BORRAR</span>
-      </button>
+<!-- ===================== APP ===================== -->
+<div class="app hidden" id="appRoot">
+  <div class="demo-banner hidden" id="demoBanner">Modo demo · los datos no se guardan. Pegá tu config de Firebase para activar la nube.</div>
+  <header>
+    <div class="topline">
+      <div class="brandmark"><span class="dot">₲</span> Cuentas Claras</div>
+      <div class="user"><span id="userTag">demo</span><button id="logoutBtn" class="hidden">Salir</button></div>
     </div>
-    <div class="rail-divider"></div>
-    <div class="swatch-row" id="swatchRow">
-      <div class="swatch" data-color="#f4f7fa" style="background:#f4f7fa"></div>
-      <div class="swatch" data-color="#d6f24c" style="background:#d6f24c"></div>
-      <div class="swatch active" data-color="#ff5a36" style="background:#ff5a36"></div>
-      <div class="swatch" data-color="#16a085" style="background:#16a085"></div>
-    </div>
-    <div class="rail-divider"></div>
-    <button class="tool-btn" id="btnClearCourt" title="Vaciar cancha">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
-      <span>LIMPIAR</span>
-    </button>
-  </div>
-
-  <div id="court-wrap">
-    <div id="court-frame">
-      <canvas id="courtCanvas"></canvas>
-      <div id="textInputOverlay"><input type="text" id="textInputField" maxlength="18" placeholder="saque..."></div>
-    </div>
-  </div>
-
-  <div id="bench"></div>
-
-  <div id="steps">
-    <button class="steps-toggle" id="btnToggleSteps" title="Colapsar/expandir pasos">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-    </button>
-    <div id="stepsContent">
-      <div class="scoreboard">
-        <div class="label">PASO</div>
-        <div class="value" id="scoreboardValue">01 / 01</div>
+    <div class="hero">
+      <div class="label">Saldo disponible</div>
+      <div class="amount num" id="heroSaldo">₲ 0</div>
+      <div class="hero-sub">
+        <div class="month-nav"><button id="prevMonth">‹</button><span id="monthLabel"></span><button id="nextMonth">›</button></div>
+        <div class="hero-flow">
+          <span>Ingresos: <b class="num pos" id="heroMonthIncome">₲ 0</b></span>
+          <span>Gastos: <b class="num" id="heroMonthSpent">₲ 0</b></span>
+        </div>
       </div>
-      <button class="play-btn" id="btnPlay">
-        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
-        REPRODUCIR
-      </button>
-      <div id="stepList"></div>
-      <button class="add-step-btn" id="btnAddStep">+ Agregar paso</button>
+      <div class="stack" id="heroStack"></div>
+      <div class="stack-legend" id="heroLegend"></div>
+    </div>
+  </header>
+
+  <main>
+    <!-- CARGAR GASTO -->
+    <section class="view active" id="v-cargar">
+      <h2 class="sec">Nuevo gasto</h2>
+      <div class="card">
+        <div class="field">
+          <label class="lab" for="f-amount">Importe</label>
+          <div class="amount-input"><span class="cur">₲</span><input id="f-amount" type="number" inputmode="numeric" placeholder="0" /></div>
+        </div>
+        <div class="field">
+          <label class="lab" for="f-desc">Descripción</label>
+          <input id="f-desc" type="text" placeholder="Ej: súper, nafta, Netflix…" autocomplete="off" />
+          <div class="cat-hint" id="catHint"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label class="lab" for="f-cat">Categoría</label><select id="f-cat"></select></div>
+          <div class="field"><label class="lab" for="f-pay">Medio de pago</label><select id="f-pay"></select></div>
+        </div>
+        <div class="cred-hint" id="credHint">Con crédito podés dejar el importe en <b>₲ 0</b> para solo registrar la compra. El gasto real lo cargás cuando pagues la tarjeta.</div>
+        <div class="field"><label class="lab" for="f-date">Fecha</label><input id="f-date" type="date" /></div>
+        <button class="btn" id="saveBtn">Guardar gasto</button>
+      </div>
+    </section>
+
+    <!-- FONDOS / INGRESOS -->
+    <section class="view" id="v-fondos">
+      <h2 class="sec">Resumen de fondos</h2>
+      <div class="kpis">
+        <div class="kpi"><div class="k">Ingresos (total)</div><div class="v num pos" id="kpiIngresos">₲ 0</div></div>
+        <div class="kpi"><div class="k">Gastos (total)</div><div class="v num" id="kpiGastos">₲ 0</div></div>
+        <div class="kpi"><div class="k">Saldo</div><div class="v num" id="kpiSaldo">₲ 0</div></div>
+      </div>
+      <div class="kpis" style="margin-top:10px">
+        <div class="kpi"><div class="k">💵 Efectivo</div><div class="v num" id="kpiEfectivo">₲ 0</div></div>
+        <div class="kpi"><div class="k">🏦 En cuenta</div><div class="v num" id="kpiCuenta">₲ 0</div></div>
+      </div>
+      <h2 class="sec">Pasar entre efectivo y cuenta</h2>
+      <div class="card">
+        <div class="field">
+          <label class="lab" for="t-amount">Importe</label>
+          <div class="amount-input"><span class="cur">₲</span><input id="t-amount" type="number" inputmode="numeric" placeholder="0" /></div>
+        </div>
+        <div class="field"><label class="lab" for="t-dir">Movimiento</label><select id="t-dir"></select></div>
+        <div class="field"><label class="lab" for="t-date">Fecha</label><input id="t-date" type="date" /></div>
+        <button class="btn" id="saveTransferBtn">Registrar traspaso</button>
+      </div>
+      <h2 class="sec">Cargar ingreso</h2>
+      <div class="card">
+        <div class="field">
+          <label class="lab" for="i-amount">Importe</label>
+          <div class="amount-input"><span class="cur">₲</span><input id="i-amount" type="number" inputmode="numeric" placeholder="0" /></div>
+        </div>
+        <div class="field"><label class="lab" for="i-desc">Descripción</label><input id="i-desc" type="text" placeholder="Ej: Sueldo, venta, transferencia…" autocomplete="off" /></div>
+        <div class="row">
+          <div class="field"><label class="lab" for="i-pay">Entra a</label><select id="i-pay"></select></div>
+          <div class="field"><label class="lab" for="i-date">Fecha</label><input id="i-date" type="date" /></div>
+        </div>
+        <button class="btn" id="saveIncomeBtn">Cargar ingreso</button>
+      </div>
+      <h2 class="sec">Ingresos del período</h2>
+      <div id="incomeList"></div>
+    </section>
+
+    <!-- MOVIMIENTOS -->
+    <section class="view" id="v-mov">
+      <h2 class="sec">Movimientos del período</h2>
+      <div id="txList"></div>
+    </section>
+
+    <!-- ESTADÍSTICAS -->
+    <section class="view" id="v-stats">
+      <h2 class="sec">Resumen del período</h2>
+      <div class="kpis">
+        <div class="kpi"><div class="k">Ingresos del mes</div><div class="v num pos" id="kpiMesIngresos">₲ 0</div></div>
+        <div class="kpi"><div class="k">Gastos del mes</div><div class="v num" id="kpiTotal">₲ 0</div></div>
+        <div class="kpi"><div class="k">Balance del mes</div><div class="v num" id="kpiMesBalance">₲ 0</div></div>
+      </div>
+      <div class="kpis" style="margin-top:10px">
+        <div class="kpi"><div class="k">Mayor categoría</div><div class="v" id="kpiTop">—</div></div>
+        <div class="kpi"><div class="k">Movimientos</div><div class="v num" id="kpiCount">0</div></div>
+      </div>
+      <h2 class="sec">Por categoría <span style="text-transform:none;font-weight:400;color:var(--muted)">· tocá para ocultar</span></h2>
+      <div class="statbars" id="statBars"></div>
+      <button class="btn" id="exportBtn" style="margin-top:20px">⬇ Exportar resumen del mes (CSV)</button>
+    </section>
+
+    <!-- AJUSTES -->
+    <section class="view" id="v-ajustes">
+      <h2 class="sec">Categorías</h2>
+      <div id="catChips"></div>
+      <div class="addrule" style="margin-top:6px">
+        <input id="newCat" type="text" placeholder="Nueva categoría" />
+        <button class="btn sm" id="addCatBtn">Agregar</button>
+      </div>
+      <h2 class="sec">Reglas de categorización</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin:-4px 2px 12px">Si la descripción contiene la palabra, se asigna esa categoría automáticamente.</p>
+      <div id="ruleList"></div>
+      <div class="addrule">
+        <input id="newKw" type="text" placeholder="palabra (ej: uber)" autocomplete="off" />
+        <select id="newRuleCat"></select>
+        <button class="btn sm" id="addRuleBtn">+</button>
+      </div>
+    </section>
+  </main>
+
+  <nav>
+    <button data-go="cargar" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>Gasto</button>
+    <button data-go="fondos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h15a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1V7zM3 7l13-2v2"/><circle cx="16.5" cy="12" r="1.3" fill="currentColor" stroke="none"/></svg>Fondos</button>
+    <button data-go="mov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Movimientos</button>
+    <button data-go="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 19V9M12 19V5M19 19v-6"/></svg>Stats</button>
+    <button data-go="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.7 7.7 0 0 0 .1-1 7.7 7.7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.8 3h-3.6l-.4 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a7.7 7.7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.6h3.6l.4-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4z"/></svg>Ajustes</button>
+  </nav>
+</div>
+
+<!-- Modal edición -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3 id="modalTitle">Editar gasto</h3>
+    <div class="field"><label class="lab">Importe</label><div class="amount-input"><span class="cur">₲</span><input id="e-amount" type="number" inputmode="numeric" /></div></div>
+    <div class="field"><label class="lab">Descripción</label><input id="e-desc" type="text" /></div>
+    <div class="row">
+      <div class="field" id="e-cat-field"><label class="lab">Categoría</label><select id="e-cat"></select></div>
+      <div class="field" id="e-pay-field"><label class="lab">Medio de pago</label><select id="e-pay"></select></div>
+    </div>
+    <div class="field"><label class="lab">Fecha</label><input id="e-date" type="date" /></div>
+    <div class="actions">
+      <button class="del" id="delBtn">Eliminar</button>
+      <button class="btn" id="updateBtn">Guardar cambios</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL: EQUIPOS -->
-<div class="modal-backdrop" id="modalTeams">
-  <div class="modal">
-    <h2>Equipos</h2>
-    <div class="field team-row">
-      <input type="color" id="colorA" value="#ff5a36">
-      <input type="text" id="nameA" maxlength="16" placeholder="Nombre equipo A">
-    </div>
-    <div class="field team-row">
-      <input type="color" id="colorB" value="#16a085">
-      <input type="text" id="nameB" maxlength="16" placeholder="Nombre equipo B">
-    </div>
-    <div class="modal-actions">
-      <button class="btn ghost" data-close>Cancelar</button>
-      <button class="btn primary" id="btnTeamsSave">Aplicar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: GUARDAR -->
-<div class="modal-backdrop" id="modalSave">
-  <div class="modal">
-    <h2>Guardar jugada</h2>
-    <div class="field">
-      <label>Nombre de la jugada</label>
-      <input type="text" id="playName" maxlength="40" placeholder="Ej: Salida contraataque">
-    </div>
-    <div class="field">
-      <label>Categoría</label>
-      <div class="cat-chips" id="catChips"></div>
-      <input type="text" id="newCatInput" style="margin-top:8px;display:none" placeholder="Nombre de la nueva categoría">
-    </div>
-    <div class="modal-actions">
-      <button class="btn ghost" data-close>Cancelar</button>
-      <button class="btn primary" id="btnSaveConfirm">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: BIBLIOTECA -->
-<div class="modal-backdrop" id="modalLibrary">
-  <div class="modal" style="width:min(420px,92vw)">
-    <h2>Biblioteca de jugadas</h2>
-    <div id="libContent"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" data-close>Cerrar</button>
-      <button class="btn primary" id="btnImportPlay">Importar archivo</button>
-    </div>
-  </div>
-</div>
-<input type="file" id="importFileInput" accept="application/json,.json" style="display:none">
-
-<div id="toast"></div>
-
-<script>
-(function(){
-"use strict";
-
-/* ============ UTILIDADES ============ */
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-if(reducedMotion) document.body.classList.add('reduced-motion');
-
-function uid(){
-  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  return 'id-'+Math.random().toString(36).slice(2)+Date.now().toString(36);
-}
-function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
-function luminance(hex){
-  const c = hex.replace('#','');
-  const r=parseInt(c.substr(0,2),16)/255, g=parseInt(c.substr(2,2),16)/255, b=parseInt(c.substr(4,2),16)/255;
-  return 0.299*r+0.587*g+0.114*b;
-}
-// Esta versión se sirve desde un dominio real (GitHub Pages u otro hosting), no desde el
-// sandbox de artifacts de Claude — así que en vez de window.storage (que solo existe ahí)
-// usamos localStorage directamente, con la misma forma {key,value} para no tocar el resto
-// del código. Ventaja extra: esto funciona 100% sin conexión, a diferencia de window.storage.
-const localDB = {
-  async get(key){
-    const v = localStorage.getItem(key);
-    if(v === null) throw new Error('no existe la clave: '+key);
-    return { key, value: v };
-  },
-  async set(key, value){
-    localStorage.setItem(key, value);
-    return { key, value };
-  }
+<script type="module">
+/* =========================================================================
+   1)  CONFIG DE FIREBASE   ← lo único que tenés que tocar
+   Mientras la apiKey tenga el texto de relleno, corre en MODO DEMO.
+   Pegá tu firebaseConfig real y se activa solo el login + la nube.
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyD_QhRqDgJ7jKzpQvh0GgWqNilswThmmZc",
+  authDomain: "cuentas-claras-familiar.firebaseapp.com",
+  projectId: "cuentas-claras-familiar",
+  storageBucket: "cuentas-claras-familiar.firebasestorage.app",
+  messagingSenderId: "609672098079",
+  appId: "1:609672098079:web:1d4a32e15e9e3d88df002a"
 };
+const IS_DEMO = /PEGÁ_TU/.test(firebaseConfig.apiKey || "");
 
-let toastTimer=null;
-function toast(msg){
-  const el=document.getElementById('toast');
-  el.textContent=msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>el.classList.remove('show'), 2200);
-}
+/* =========================================================================
+   2)  REFERENCIA  (igual en demo y producción)
+   ========================================================================= */
+const LOCALE="es-PY";
+const fmt = n => "₲ " + Math.round(n).toLocaleString(LOCALE);   // Guaraní, sin decimales
 
-/* ============ ESTADO ============ */
-// 9 piezas: 4 fichas simples (2 por equipo), 4 siluetas de jugador (2 por equipo) y la pelota.
-// Todas arrancan fuera de la cancha (onCourt:false); el entrenador arrastra desde el banco
-// solo lo que necesita usar en cada paso.
-function defaultPieces(){
-  // Los 4 jugadores (silueta) y la pelota arrancan colocados en cancha; las fichas
-  // redondas quedan en el banco por si las querés usar en vez de (o junto a) las siluetas.
-  const startPos={
-    A1p:{x:0.32,y:0.66}, A2p:{x:0.68,y:0.66},
-    B1p:{x:0.32,y:0.34}, B2p:{x:0.68,y:0.34},
-  };
-  const pieces=[];
-  ['A','B'].forEach(team=>{
-    [1,2].forEach(num=>{
-      pieces.push({id:team+num+'f', kind:'ficha', team, num, onCourt:false, x:0.5, y:0.5});
-      const sp=startPos[team+num+'p'];
-      pieces.push({id:team+num+'p', kind:'player', team, num, onCourt:true, x:sp.x, y:sp.y, rot: sp.y>0.5?0:Math.PI, hand:'right'});
-    });
-  });
-  pieces.push({id:'ball', kind:'ball', team:null, num:null, onCourt:true, x:0.5, y:0.5});
-  ['green','orange'].forEach(variant=>{
-    [1,2].forEach(n=>{
-      pieces.push({id:'cone-'+variant+n, kind:'cone', variant, team:null, num:null, onCourt:false, x:0.5, y:0.5});
-    });
-  });
-  pieces.push({id:'basket', kind:'basket', team:null, num:null, onCourt:false, x:0.5, y:0.5});
-  return pieces;
-}
-function defaultStep(){
-  return { pieces: defaultPieces(), drawings: [] };
-}
-// Compatibilidad con jugadas/borradores guardados antes de este cambio (formato viejo: step.players).
-function migrateStep(step){
-  if(step.pieces){
-    step.pieces.forEach(pc=>{ if(pc.kind==='player' && !pc.hand) pc.hand='right'; });
-    // agrega piezas nuevas (conos, canasto) que no existían cuando se guardó esta jugada
-    const existingIds=new Set(step.pieces.map(pc=>pc.id));
-    defaultPieces().forEach(dp=>{
-      if(!existingIds.has(dp.id)) step.pieces.push(dp);
-    });
-    return step;
-  }
-  const pieces=defaultPieces();
-  if(Array.isArray(step.players)){
-    step.players.forEach(op=>{
-      const num = op.id && op.id.endsWith('2') ? 2 : 1;
-      const fp = pieces.find(pc=>pc.kind==='ficha' && pc.team===op.team && pc.num===num);
-      if(fp){ fp.onCourt=true; fp.x=op.x; fp.y=op.y; }
-    });
-  }
-  step.pieces=pieces;
-  delete step.players;
-  return step;
-}
-function migrateSteps(steps){
-  return (steps||[]).map(migrateStep);
-}
-
-const state = {
-  team:{ A:{name:'Equipo A', color:'#ff5a36'}, B:{name:'Equipo B', color:'#16a085'} },
-  steps:[ defaultStep() ],
-  currentStepIndex:0,
-  tool:'pincel',
-  drawColor:'#ff5a36',
-  playing:false,
+const PAYMENTS=["Efectivo","Débito","Crédito","Transferencia"];
+const INCOME_PAYMENTS=["Efectivo","Transferencia"];
+const TRANSFERS=["De Efectivo a Cuenta","De Cuenta a Efectivo"];
+const DEFAULT_CATEGORIES=["Comida","Transporte","Ocio","Servicios","Salud","Hogar","Otros"];
+const CAT_STYLE={
+  "Comida":{color:"var(--c-comida)",icon:"🍽️"},"Transporte":{color:"var(--c-transporte)",icon:"🚗"},
+  "Ocio":{color:"var(--c-ocio)",icon:"🎬"},"Servicios":{color:"var(--c-servicios)",icon:"💡"},
+  "Salud":{color:"var(--c-salud)",icon:"➕"},"Hogar":{color:"var(--c-hogar)",icon:"🏠"},"Otros":{color:"var(--c-otros)",icon:"•"},
 };
-
-let history=[]; // pila de deshacer
-function pushHistory(){
-  history.push(JSON.stringify({team:state.team, steps:state.steps, currentStepIndex:state.currentStepIndex}));
-  if(history.length>25) history.shift();
+const FALLBACK_COLORS=["#5B8A72","#A0563B","#4C6FA5","#8E5BA6","#B0852F","#2F8E8E","#B5577E"];
+function catStyle(cat){
+  if(CAT_STYLE[cat])return CAT_STYLE[cat];
+  let h=0;for(const ch of cat)h=(h*31+ch.charCodeAt(0))>>>0;
+  return {color:FALLBACK_COLORS[h%FALLBACK_COLORS.length],icon:"•"};
 }
-function undo(){
-  if(!history.length){ toast('Nada para deshacer'); return; }
-  const snap=JSON.parse(history.pop());
-  state.team=snap.team; state.steps=snap.steps; state.currentStepIndex=snap.currentStepIndex;
-  renderAll();
-}
+const DEFAULT_RULES=[
+  ["super","Comida"],["supermercado","Comida"],["despensa","Comida"],["almuerzo","Comida"],["cena","Comida"],
+  ["cafe","Comida"],["restaurante","Comida"],["pizza","Comida"],["panaderia","Comida"],["verduleria","Comida"],
+  ["nafta","Transporte"],["combustible","Transporte"],["uber","Transporte"],["bolt","Transporte"],["taxi","Transporte"],
+  ["colectivo","Transporte"],["peaje","Transporte"],["estacionamiento","Transporte"],
+  ["cine","Ocio"],["bar","Ocio"],["netflix","Ocio"],["spotify","Ocio"],["salida","Ocio"],["juego","Ocio"],
+  ["luz","Servicios"],["ande","Servicios"],["agua","Servicios"],["essap","Servicios"],["internet","Servicios"],
+  ["telefono","Servicios"],["celular","Servicios"],["alquiler","Servicios"],
+  ["farmacia","Salud"],["medico","Salud"],["remedio","Salud"],["consulta","Salud"],
+  ["limpieza","Hogar"],["ferreteria","Hogar"],["muebles","Hogar"],
+].map(r=>({kw:r[0],cat:r[1]}));
 
-function curStep(){ return state.steps[state.currentStepIndex]; }
+/* Estado compartido. tx = lista única de transacciones (gasto | ingreso) */
+const store={ config:{categories:[...DEFAULT_CATEGORIES],rules:[...DEFAULT_RULES]}, tx:[] };
 
-/* autosave (borrador personal) */
-let autosaveTimer=null;
-function scheduleAutosave(){
-  clearTimeout(autosaveTimer);
-  autosaveTimer=setTimeout(async ()=>{
-    try{
-      await localDB.set('draft-session', JSON.stringify({team:state.team, steps:state.steps}));
-    }catch(e){ /* silencioso */ }
-  }, 900);
-}
-async function restoreDraft(){
-  try{
-    const res = await localDB.get('draft-session');
-    if(res && res.value){
-      const d=JSON.parse(res.value);
-      if(d.team) state.team=d.team;
-      if(d.steps && d.steps.length) state.steps=migrateSteps(d.steps);
-      state.currentStepIndex=0;
-    }
-  }catch(e){ /* no hay borrador, arrancamos con default */ }
-}
+function normalize(s){return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
+function classify(desc){const t=normalize(desc);for(const r of store.config.rules){if(t.includes(normalize(r.kw)))return r.cat;}return "Otros";}
 
-/* ============ CANVAS / DIBUJO ============ */
-const canvas=document.getElementById('courtCanvas');
-let ctx=canvas.getContext('2d');
-const frame=document.getElementById('court-frame');
-const FICHA_R_FRAC = 0.052; // radio de la ficha simple, relativo al ancho de cancha interior
+/* Derivados — el saldo SIEMPRE se calcula, nunca se guarda */
+const isExp=t=>t.type==="expense", isInc=t=>t.type==="income", isTransfer=t=>t.type==="transfer";
+function totalIncome(){return store.tx.filter(isInc).reduce((s,t)=>s+t.amount,0);}
+function totalExpense(){return store.tx.filter(isExp).reduce((s,t)=>s+t.amount,0);}
+function saldo(){return totalIncome()-totalExpense();}
 
-function resizeCanvas(){
-  const rect=frame.getBoundingClientRect();
-  const dpr=window.devicePixelRatio||1;
-  canvas.width=Math.round(rect.width*dpr);
-  canvas.height=Math.round(rect.height*dpr);
-  render();
-}
-new ResizeObserver(resizeCanvas).observe(frame);
-// varios respaldos para el mismo evento: distintos celulares/navegadores disparan uno u
-// otro primero (o no disparan alguno) al rotar la pantalla, así que cubrimos todos.
-window.addEventListener('orientationchange', ()=>setTimeout(resizeCanvas,200));
-window.addEventListener('resize', ()=>resizeCanvas());
-if(window.visualViewport){
-  window.visualViewport.addEventListener('resize', ()=>resizeCanvas());
-}
+/* =========================================================================
+   3)  BACKEND  —  única pieza que cambia entre demo y Firebase
+   ========================================================================= */
+let backend, CURRENT_USER="demo";
 
-// Todo el diagrama se calcula en metros reales y se convierte a píxeles con UN SOLO factor
-// de escala (k), usado para ambos ejes. Así, un panel de vidrio de 2m mide lo mismo en
-// píxeles sea lateral o de fondo, y la pista mantiene su proporción real 10m x 20m.
-const COURT_W_M=10, COURT_L_M=20;      // ancho y largo reales de la pista
-const WALL_BAND_M=0.8, LABEL_ZONE_M=1.3; // grosores "de estilo" de la banda de vidrio/reja y la zona de números (iguales en los 4 lados)
-const TOTAL_W_M = COURT_W_M + 2*(WALL_BAND_M+LABEL_ZONE_M);
-const TOTAL_L_M = COURT_L_M + 2*(WALL_BAND_M+LABEL_ZONE_M);
-
-function innerRect(W, H){
-  // W/H opcionales: permiten calcular el mismo rect para un canvas de otro tamaño
-  // (por ejemplo, los thumbnails de los pasos) sin duplicar esta fórmula en otro lado.
-  W = (W===undefined) ? canvas.width : W;
-  H = (H===undefined) ? canvas.height : H;
-  // k = píxeles por metro. Se toma el eje más restrictivo para que, aunque el contenedor
-  // no respete exactamente la proporción real, el diagrama nunca se estire ni se corte
-  // (si sobra espacio en el otro eje, se centra en vez de deformarse).
-  const k = Math.min(W/TOTAL_W_M, H/TOTAL_L_M);
-  const totalWpx=TOTAL_W_M*k, totalLpx=TOTAL_L_M*k;
-  const offsetX=(W-totalWpx)/2, offsetY=(H-totalLpx)/2;
-  const wallPx=WALL_BAND_M*k, labelPx=LABEL_ZONE_M*k;
-  const x0=offsetX+wallPx+labelPx, y0=offsetY+wallPx+labelPx;
-  return {
-    x0, y0, w:COURT_W_M*k, h:COURT_L_M*k, W, H,
-    wallW:wallPx, wallH:wallPx, labelW:labelPx, labelH:labelPx, k
-  };
-}
-function toPx(nx,ny,ir){
-  ir = ir||innerRect();
-  return { x: ir.x0+nx*ir.w, y: ir.y0+ny*ir.h };
-}
-
-/* ---------- Perímetro: cristales y rejas numerados ----------
-   Laterales: 2 paneles de vidrio de 2m (de 10m de mitad de lateral) pegados a cada
-   esquina de fondo; el resto del lateral hacia la red es reja.
-   Fondo: 5 paneles de vidrio de 2m (10m de ancho = 5x2m).
-   Numeración en espejo por cada extremo: V1,V2 (laterales) · V3,V4,V5,V4,V3 (fondo) · V2,V1 (laterales). */
-function wallSegments(){
-  const LG0=0.10, LG1=0.20; // panel lateral más lejano al vidrio central (V1) ocupa 0.10-0.20 (2m de los 4m de vidrio)
-  return [
-    // lateral izquierdo, mitad superior
-    {side:'left', kind:'glass', y0:LG0, y1:LG1, label:'V1'},
-    {side:'left', kind:'glass', y0:0,   y1:LG0, label:'V2'},
-    {side:'left', kind:'fence', y0:LG1, y1:0.5,  label:null},
-    // lateral izquierdo, mitad inferior
-    {side:'left', kind:'fence', y0:0.5,      y1:1-LG1, label:null},
-    {side:'left', kind:'glass', y0:1-LG1,    y1:1-LG0, label:'V1'},
-    {side:'left', kind:'glass', y0:1-LG0,    y1:1,     label:'V2'},
-    // lateral derecho (mismo patrón)
-    {side:'right', kind:'glass', y0:LG0, y1:LG1, label:'V1'},
-    {side:'right', kind:'glass', y0:0,   y1:LG0, label:'V2'},
-    {side:'right', kind:'fence', y0:LG1, y1:0.5,  label:null},
-    {side:'right', kind:'fence', y0:0.5,      y1:1-LG1, label:null},
-    {side:'right', kind:'glass', y0:1-LG1,    y1:1-LG0, label:'V1'},
-    {side:'right', kind:'glass', y0:1-LG0,    y1:1,     label:'V2'},
-    // fondo superior (5 paneles de 2m = 0.2 cada uno)
-    {side:'top', kind:'glass', x0:0.0, x1:0.2, label:'V3'},
-    {side:'top', kind:'glass', x0:0.2, x1:0.4, label:'V4'},
-    {side:'top', kind:'glass', x0:0.4, x1:0.6, label:'V5'},
-    {side:'top', kind:'glass', x0:0.6, x1:0.8, label:'V4'},
-    {side:'top', kind:'glass', x0:0.8, x1:1.0, label:'V3'},
-    // fondo inferior (mismo patrón, numeración propia)
-    {side:'bottom', kind:'glass', x0:0.0, x1:0.2, label:'V3'},
-    {side:'bottom', kind:'glass', x0:0.2, x1:0.4, label:'V4'},
-    {side:'bottom', kind:'glass', x0:0.4, x1:0.6, label:'V5'},
-    {side:'bottom', kind:'glass', x0:0.6, x1:0.8, label:'V4'},
-    {side:'bottom', kind:'glass', x0:0.8, x1:1.0, label:'V3'},
+function makeDemoBackend(){
+  let seq=1; const today=new Date();
+  const d=n=>{const x=new Date(today);x.setDate(x.getDate()-n);return x.toISOString().slice(0,10);};
+  const ex=(amount,description,category,payment,day)=>({id:"x"+(seq++),type:"expense",amount,description,category,payment,date:d(day)});
+  const inc=(amount,description,payment,day)=>({id:"x"+(seq++),type:"income",amount,description,payment,date:d(day)});
+  const tr=(amount,from,to,day)=>({id:"x"+(seq++),type:"transfer",amount,from,to,date:d(day)});
+  store.tx=[
+    inc(4500000,"Sueldo","Transferencia",15),
+    inc(600000,"Venta usados","Efectivo",8),
+    tr(200000,"Cuenta","Efectivo",3),
+    ex(320000,"Súper","Comida","Débito",1),
+    ex(250000,"Nafta","Transporte","Crédito",2),
+    ex(35000,"Café con Ana","Comida","Efectivo",2),
+    ex(55000,"Netflix","Ocio","Crédito",4),
+    ex(280000,"Internet","Servicios","Transferencia",5),
+    ex(90000,"Farmacia","Salud","Débito",6),
+    ex(180000,"Cena","Comida","Crédito",9),
+    ex(45000,"Uber","Transporte","Crédito",11),
   ];
+  return {
+    add(t){store.tx.unshift({id:"x"+(seq++),...t});renderAll();},
+    update(id,patch){const t=store.tx.find(x=>x.id===id);if(t)Object.assign(t,patch);renderAll();},
+    remove(id){store.tx=store.tx.filter(x=>x.id!==id);renderAll();},
+    persistConfig(){},
+  };
 }
-function wallPx(seg, ir){
-  if(seg.side==='left'){
-    const pA=toPx(0,seg.y0,ir), pB=toPx(0,seg.y1,ir);
-    return { x: ir.x0-ir.wallW, y: pA.y, w: ir.wallW, h: pB.y-pA.y };
+
+async function makeFirebaseBackend(){
+  const V="https://www.gstatic.com/firebasejs/10.12.2";
+  const { initializeApp }=await import(`${V}/firebase-app.js`);
+  const { getAuth,setPersistence,browserLocalPersistence,onAuthStateChanged,
+          signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut }=await import(`${V}/firebase-auth.js`);
+  const { getFirestore,collection,doc,addDoc,updateDoc,deleteDoc,setDoc,getDoc,
+          onSnapshot,query,orderBy,serverTimestamp }=await import(`${V}/firebase-firestore.js`);
+
+  const app=initializeApp(firebaseConfig);
+  const auth=getAuth(app);
+  const db=getFirestore(app);
+  await setPersistence(auth,browserLocalPersistence);   // sesión persistente en el dispositivo
+
+  let uid=null, unsubTx=null;
+  const txCol=()=>collection(db,"users",uid,"tx");
+  const cfgRef=()=>doc(db,"users",uid,"meta","config");
+
+  async function loadConfig(){
+    const snap=await getDoc(cfgRef());
+    if(snap.exists())store.config=snap.data();
+    else{store.config={categories:[...DEFAULT_CATEGORIES],rules:[...DEFAULT_RULES]};await setDoc(cfgRef(),store.config);}
   }
-  if(seg.side==='right'){
-    const pA=toPx(1,seg.y0,ir), pB=toPx(1,seg.y1,ir);
-    return { x: ir.x0+ir.w, y: pA.y, w: ir.wallW, h: pB.y-pA.y };
-  }
-  if(seg.side==='top'){
-    const pA=toPx(seg.x0,0,ir), pB=toPx(seg.x1,0,ir);
-    return { x: pA.x, y: ir.y0-ir.wallH, w: pB.x-pA.x, h: ir.wallH };
-  }
-  // bottom
-  const pA=toPx(seg.x0,1,ir), pB=toPx(seg.x1,1,ir);
-  return { x: pA.x, y: ir.y0+ir.h, w: pB.x-pA.x, h: ir.wallH };
-}
-function drawGlassPanel(r, scale){
-  const grad=ctx.createLinearGradient(r.x,r.y,r.x+r.w,r.y+r.h);
-  grad.addColorStop(0,'rgba(212,232,247,.55)');
-  grad.addColorStop(0.5,'rgba(178,206,228,.32)');
-  grad.addColorStop(1,'rgba(212,232,247,.5)');
-  ctx.fillStyle=grad;
-  ctx.fillRect(r.x,r.y,r.w,r.h);
-  ctx.save();
-  ctx.beginPath(); ctx.rect(r.x,r.y,r.w,r.h); ctx.clip();
-  ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=Math.max(1,1.6*scale);
-  ctx.beginPath(); ctx.moveTo(r.x, r.y+r.h*0.18); ctx.lineTo(r.x+r.w, r.y+r.h*0.82); ctx.stroke();
-  ctx.restore();
-  ctx.strokeStyle='rgba(244,247,250,.65)'; ctx.lineWidth=Math.max(1,1.2*scale);
-  ctx.strokeRect(r.x,r.y,r.w,r.h);
-}
-function drawFencePanel(r, scale){
-  ctx.save();
-  ctx.beginPath(); ctx.rect(r.x,r.y,r.w,r.h); ctx.clip();
-  ctx.fillStyle='rgba(10,22,38,.4)';
-  ctx.fillRect(r.x,r.y,r.w,r.h);
-  ctx.strokeStyle='rgba(150,172,192,.5)'; ctx.lineWidth=Math.max(1,scale);
-  const step=Math.max(7,10*scale), span=r.w+r.h;
-  for(let d=-r.h; d<span; d+=step){
-    ctx.beginPath(); ctx.moveTo(r.x+d,r.y); ctx.lineTo(r.x+d+r.h,r.y+r.h); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(r.x+d,r.y+r.h); ctx.lineTo(r.x+d+r.h,r.y); ctx.stroke();
-  }
-  ctx.restore();
-  ctx.strokeStyle='rgba(150,172,192,.4)'; ctx.lineWidth=Math.max(1,1.1*scale);
-  ctx.strokeRect(r.x,r.y,r.w,r.h);
-}
-function drawWallLabel(seg, ir, scale){
-  if(!seg.label) return;
-  ctx.save();
-  ctx.fillStyle='rgba(244,247,250,.9)';
-  ctx.font=`700 ${Math.max(10,13*scale)}px 'JetBrains Mono', monospace`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  if(seg.side==='left'){
-    const pA=toPx(0,seg.y0,ir), pB=toPx(0,seg.y1,ir);
-    ctx.fillText(seg.label, ir.x0-ir.wallW-ir.labelW*0.5, (pA.y+pB.y)/2);
-  } else if(seg.side==='right'){
-    const pA=toPx(1,seg.y0,ir), pB=toPx(1,seg.y1,ir);
-    ctx.fillText(seg.label, ir.x0+ir.w+ir.wallW+ir.labelW*0.5, (pA.y+pB.y)/2);
-  } else if(seg.side==='top'){
-    const pA=toPx(seg.x0,0,ir), pB=toPx(seg.x1,0,ir);
-    ctx.fillText(seg.label, (pA.x+pB.x)/2, ir.y0-ir.wallH-ir.labelH*0.5);
-  } else {
-    const pA=toPx(seg.x0,1,ir), pB=toPx(seg.x1,1,ir);
-    ctx.fillText(seg.label, (pA.x+pB.x)/2, ir.y0+ir.h+ir.wallH+ir.labelH*0.5);
-  }
-  ctx.restore();
-}
-function drawWalls(ir, scale){
-  const segs=wallSegments();
-  segs.forEach(seg=>{
-    const r=wallPx(seg,ir);
-    if(seg.kind==='glass') drawGlassPanel(r,scale); else drawFencePanel(r,scale);
-  });
-  segs.forEach(seg=>drawWallLabel(seg,ir,scale));
-}
-
-/* La cancha (vidrios, rejas, líneas) no cambia entre frames mientras no se
-   redimensione la pantalla, así que se cachea en un canvas offscreen y solo
-   se reconstruye si cambia el tamaño. Esto evita recalcular la reja/vidrio
-   en cada frame de arrastre o de la animación. */
-let staticCourtCache=null, staticCourtKey=null;
-function drawCourt(ir){
-  if(ir.W<=0 || ir.H<=0) return; // tamaño inválido momentáneo (ej. durante un cambio de layout); no hay nada para dibujar todavía
-  const key=ir.W+'x'+ir.H;
-  if(staticCourtKey!==key){
-    const off=document.createElement('canvas');
-    off.width=ir.W; off.height=ir.H;
-    const octx=off.getContext('2d');
-    const prevCtx=ctx; ctx=octx;
-    try{
-      drawCourtFull(ir);
-      staticCourtCache=off; staticCourtKey=key;
-    } finally {
-      ctx=prevCtx;
-    }
-  }
-  if(staticCourtCache) ctx.drawImage(staticCourtCache,0,0);
-}
-
-function drawCourtFull(ir){
-  const {x0,y0,w,h,W,H} = ir;
-  const scale = w/380;
-  // fondo estadio
-  ctx.fillStyle='#0a1626';
-  ctx.fillRect(0,0,W,H);
-  // perímetro: vidrios y rejas numerados
-  drawWalls(ir, scale);
-  // superficie de la cancha
-  const courtGrad=ctx.createLinearGradient(0,y0,0,y0+h);
-  courtGrad.addColorStop(0,'#1d5fa3'); courtGrad.addColorStop(0.5,'#1a5695'); courtGrad.addColorStop(1,'#154a82');
-  ctx.fillStyle=courtGrad;
-  ctx.fillRect(x0,y0,w,h);
-  // textura sutil (franjas de cesped)
-  ctx.save();
-  ctx.beginPath(); ctx.rect(x0,y0,w,h); ctx.clip();
-  ctx.globalAlpha=0.05;
-  ctx.fillStyle='#ffffff';
-  const stripes=10;
-  for(let i=0;i<stripes;i++){
-    if(i%2===0) ctx.fillRect(x0, y0+(h/stripes)*i, w, h/stripes);
-  }
-  ctx.restore();
-  ctx.globalAlpha=1;
-
-  const lw = Math.max(2, w*0.012);
-  ctx.strokeStyle='#f4f7fa'; ctx.lineWidth=lw; ctx.lineCap='round';
-
-  // borde cancha
-  ctx.strokeRect(x0+lw/2, y0+lw/2, w-lw, h-lw);
-
-  // linea de saque de fondo: a 3m de la pared de fondo (3/20 = 0.15)
-  const SERVICE_Y = 3/20; // 0.15
-  [SERVICE_Y, 1-SERVICE_Y].forEach(ny=>{
-    const p=toPx(0,ny,ir), p2=toPx(1,ny,ir);
-    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
-  });
-  // linea central: cruza la red y sobrepasa cada línea de saque unos 20cm (0.2/20=0.01) más;
-  // nunca llega a la pared de fondo (se queda a 3m - 0.2m = 2.8m de esa pared)
-  {
-    const overshoot=0.2/20; // 0.01
-    const p1=toPx(0.5, SERVICE_Y-overshoot, ir), p2=toPx(0.5, (1-SERVICE_Y)+overshoot, ir);
-    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
-  }
-  // red (linea gruesa central) con "postes"
-  const netY=toPx(0,0.5,ir), netY2=toPx(1,0.5,ir);
-  ctx.save();
-  ctx.strokeStyle='#f4f7fa'; ctx.lineWidth=lw*2.2;
-  ctx.beginPath(); ctx.moveTo(netY.x,netY.y); ctx.lineTo(netY2.x,netY2.y); ctx.stroke();
-  ctx.globalAlpha=0.35;
-  ctx.lineWidth=lw*2.2*2.4;
-  ctx.beginPath(); ctx.moveTo(netY.x,netY.y); ctx.lineTo(netY2.x,netY2.y); ctx.stroke();
-  ctx.restore();
-  [0,1].forEach(nx=>{
-    const p=toPx(nx,0.5,ir);
-    ctx.beginPath(); ctx.arc(p.x,p.y, w*0.014, 0, Math.PI*2);
-    ctx.fillStyle='#dfe7ee'; ctx.fill();
-  });
-  // viñeta estadio
-  const vg=ctx.createRadialGradient(W/2,H*0.4,H*0.2, W/2,H*0.4,H*0.85);
-  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.35)');
-  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
-}
-function roundRect(c,x,y,w,h,r){
-  c.beginPath();
-  c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
-  c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
-}
-
-function drawArrowHead(p1,p2,color,scale){
-  const ang=Math.atan2(p2.y-p1.y, p2.x-p1.x);
-  const len=14*scale;
-  ctx.save();
-  ctx.fillStyle=color; ctx.strokeStyle=color;
-  ctx.beginPath();
-  ctx.moveTo(p2.x,p2.y);
-  ctx.lineTo(p2.x-len*Math.cos(ang-0.4), p2.y-len*Math.sin(ang-0.4));
-  ctx.lineTo(p2.x-len*Math.cos(ang+0.4), p2.y-len*Math.sin(ang+0.4));
-  ctx.closePath(); ctx.fill();
-  ctx.restore();
-}
-
-function drawDrawings(drawings, ir, alpha){
-  alpha = alpha===undefined?1:alpha;
-  const scale=ir.w/460;
-  ctx.globalAlpha=alpha;
-  drawings.forEach(d=>{
-    if(d.type==='arrow'){
-      const p1=toPx(d.from.x,d.from.y,ir), p2=toPx(d.to.x,d.to.y,ir);
-      ctx.strokeStyle=d.color; ctx.lineWidth=Math.max(2,4*scale); ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
-      drawArrowHead(p1,p2,d.color,scale);
-    } else if(d.type==='path'){
-      if(d.points.length<2) return;
-      ctx.strokeStyle=d.color; ctx.lineWidth=Math.max(2,4*scale); ctx.lineCap='round'; ctx.lineJoin='round';
-      ctx.beginPath();
-      const p0=toPx(d.points[0].x,d.points[0].y,ir);
-      ctx.moveTo(p0.x,p0.y);
-      for(let i=1;i<d.points.length;i++){
-        const p=toPx(d.points[i].x,d.points[i].y,ir);
-        ctx.lineTo(p.x,p.y);
-      }
-      ctx.stroke();
-    } else if(d.type==='curve'){
-      const p1=toPx(d.from.x,d.from.y,ir), p2=toPx(d.to.x,d.to.y,ir), pc_=toPx(d.control.x,d.control.y,ir);
-      ctx.strokeStyle=d.color; ctx.lineWidth=Math.max(2,4*scale); ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.quadraticCurveTo(pc_.x,pc_.y,p2.x,p2.y); ctx.stroke();
-      // la punta de flecha se orienta según la tangente de la curva en el punto final
-      // (que va de "control" a "to", no de "from" a "to")
-      drawArrowHead(pc_,p2,d.color,scale);
-    } else if(d.type==='text'){
-      const p=toPx(d.x,d.y,ir);
-      ctx.font=`700 ${Math.max(11,13*scale)}px Inter, sans-serif`;
-      const tw=ctx.measureText(d.label).width;
-      const padX=8*scale, padY=5*scale;
-      ctx.fillStyle='rgba(8,18,30,.82)';
-      roundRect(ctx, p.x-tw/2-padX, p.y-9*scale-padY, tw+padX*2, 18*scale+padY*2, 6*scale);
-      ctx.fill();
-      ctx.strokeStyle=d.color; ctx.lineWidth=1.4; ctx.stroke();
-      ctx.fillStyle=d.color;
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(d.label, p.x, p.y);
-    }
-  });
-  ctx.globalAlpha=1;
-}
-
-function drawFicha(pc, ir, scale){
-  const p=toPx(pc.x,pc.y,ir);
-  const r=ir.w*FICHA_R_FRAC;
-  const color=state.team[pc.team].color;
-  ctx.save();
-  ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=8*scale; ctx.shadowOffsetY=3*scale;
-  ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
-  ctx.fillStyle=color; ctx.fill();
-  ctx.restore();
-  ctx.lineWidth=Math.max(2,2.6*scale); ctx.strokeStyle='#f4f7fa';
-  ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2); ctx.stroke();
-  ctx.fillStyle = luminance(color) > 0.55 ? '#0a1626' : '#f4f7fa';
-  ctx.font=`700 ${Math.max(12,15*scale)}px Inter, sans-serif`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(pc.num, p.x, p.y+1);
-}
-
-// Silueta de jugador vista desde arriba, con proporciones reales en metros: hombros,
-// cabeza levemente adelantada y brazo+pala extendidos hacia el lado hábil (diestro por defecto),
-// siempre orientado hacia la red según en qué mitad de la cancha esté parado.
-function drawPlayerSilhouette(pc, ir, scale){
-  const p=toPx(pc.x,pc.y,ir);
-  const color=state.team[pc.team].color;
-  const pxPerM=ir.w/10; // 10m = ancho real de la cancha (proporciones exageradas ~1.5x para que se vea bien en pantalla)
-
-  // medidas (en el mismo "metro escalado" que usa el resto de la cancha)
-  const shoulderW=0.93*pxPerM, hipW=0.65*pxPerM, torsoLen=0.72*pxPerM;
-  const headR=0.2325*pxPerM, headGap=0.07*pxPerM;
-  const footR=0.155*pxPerM, footSpread=0.30*pxPerM, footBack=0.16*pxPerM;
-  const armLen=0.85*pxPerM, paddleLen=0.675*pxPerM, paddleW=0.39*pxPerM;
-
-  const rot = (pc.rot!==undefined) ? pc.rot : (pc.y>0.5 ? 0 : Math.PI);
-
-  ctx.save();
-  ctx.translate(p.x,p.y);
-  ctx.rotate(rot); // a partir de acá, "arriba" en coordenadas locales = hacia dónde mira el jugador
-
-  const sW=shoulderW/2, hW=hipW/2, hl=torsoLen/2;
-
-  // pies (posición de espera, apenas detrás de la cadera)
-  const footY=hl+footBack;
-  ctx.fillStyle=color; ctx.lineWidth=Math.max(1.2,1.6*scale); ctx.strokeStyle='#f4f7fa';
-  [-1,1].forEach(side=>{
-    ctx.beginPath();
-    ctx.ellipse(side*footSpread, footY, footR*0.62, footR, 0, 0, Math.PI*2);
-    ctx.fill(); ctx.stroke();
-  });
-
-  // torso ahusado: hombros anchos arriba, cadera angosta abajo (con sombra)
-  ctx.save();
-  ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=7*scale; ctx.shadowOffsetY=3*scale;
-  ctx.beginPath();
-  ctx.moveTo(-hW, hl);
-  ctx.quadraticCurveTo(-sW*1.08, 0, -sW, -hl);
-  ctx.quadraticCurveTo(0, -hl-sW*0.32, sW, -hl);
-  ctx.quadraticCurveTo(sW*1.08, 0, hW, hl);
-  ctx.quadraticCurveTo(0, hl+hW*0.32, -hW, hl);
-  ctx.closePath();
-  ctx.fillStyle=color; ctx.fill();
-  ctx.restore();
-  ctx.lineWidth=Math.max(2,2.3*scale); ctx.strokeStyle='#f4f7fa'; ctx.stroke();
-
-  // cabeza, separada por delante de los hombros
-  const headY=-hl-headGap-headR;
-  ctx.beginPath(); ctx.arc(0,headY,headR,0,Math.PI*2);
-  ctx.fillStyle=color; ctx.fill();
-  ctx.lineWidth=Math.max(1.6,2*scale); ctx.strokeStyle='#f4f7fa'; ctx.stroke();
-
-  // brazo + pala hacia el lado hábil (adelante-derecha, o adelante-izquierda si es zurdo)
-  const handSign = pc.hand==='left' ? -1 : 1;
-  let ax=handSign, ay=-0.55; const al=Math.hypot(ax,ay); ax/=al; ay/=al;
-  const handX=ax*armLen, handY=ay*armLen;
-  ctx.lineWidth=Math.max(2,2.6*scale); ctx.strokeStyle=color; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(handX,handY); ctx.stroke();
-  const grip=paddleLen*0.18;
-  const midX=handX+ax*(paddleLen/2-grip), midY=handY+ay*(paddleLen/2-grip);
-  ctx.save();
-  ctx.translate(midX,midY);
-  ctx.rotate(Math.atan2(ay,ax));
-  ctx.beginPath(); ctx.ellipse(0,0,paddleLen/2,paddleW/2,0,0,Math.PI*2);
-  ctx.fillStyle=color; ctx.fill();
-  ctx.lineWidth=Math.max(1,1.3*scale); ctx.strokeStyle='#f4f7fa'; ctx.stroke();
-  ctx.restore();
-
-  // número, en el centro del torso
-  ctx.fillStyle = luminance(color) > 0.55 ? '#0a1626' : '#f4f7fa';
-  ctx.font=`700 ${Math.max(12,14*scale)}px Inter, sans-serif`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(pc.num, 0, 1);
-
-  ctx.restore();
-}
-
-function drawBallIcon(pc, ir, scale){
-  const p=toPx(pc.x,pc.y,ir);
-  const r=ir.w*0.028;
-  ctx.save();
-  ctx.shadowColor='rgba(0,0,0,.45)'; ctx.shadowBlur=6*scale; ctx.shadowOffsetY=2*scale;
-  ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2);
-  const grad=ctx.createRadialGradient(p.x-r*0.3,p.y-r*0.3,r*0.1,p.x,p.y,r);
-  grad.addColorStop(0,'#eaff9a'); grad.addColorStop(1,'#a9c23a');
-  ctx.fillStyle=grad; ctx.fill();
-  ctx.restore();
-  ctx.lineWidth=Math.max(1,1.2*scale); ctx.strokeStyle='#7a8f2e';
-  ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(p.x,p.y,r*0.75, Math.PI*0.15, Math.PI*0.85); ctx.stroke();
-  ctx.beginPath(); ctx.arc(p.x,p.y,r*0.75, Math.PI*1.15, Math.PI*1.85); ctx.stroke();
-}
-
-function drawCone(pc, ir, scale){
-  const p=toPx(pc.x,pc.y,ir);
-  const pxPerM=ir.w/10;
-  const h=0.5*pxPerM, baseW=0.4*pxPerM;
-  const color = pc.variant==='green' ? '#16a085' : '#ff7a1a';
-  ctx.save();
-  ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=5*scale; ctx.shadowOffsetY=2*scale;
-  ctx.beginPath();
-  ctx.moveTo(p.x, p.y-h/2);
-  ctx.lineTo(p.x+baseW/2, p.y+h/2);
-  ctx.lineTo(p.x-baseW/2, p.y+h/2);
-  ctx.closePath();
-  ctx.fillStyle=color; ctx.fill();
-  ctx.restore();
-  ctx.lineWidth=Math.max(1.4,1.8*scale); ctx.strokeStyle='#f4f7fa'; ctx.stroke();
-  // franja blanca, como los conos reales
-  ctx.beginPath();
-  ctx.moveTo(p.x-baseW*0.24, p.y+h*0.04);
-  ctx.lineTo(p.x+baseW*0.24, p.y+h*0.04);
-  ctx.lineTo(p.x+baseW*0.34, p.y+h*0.24);
-  ctx.lineTo(p.x-baseW*0.34, p.y+h*0.24);
-  ctx.closePath();
-  ctx.fillStyle='#f4f7fa'; ctx.fill();
-}
-
-function drawBasket(pc, ir, scale){
-  const p=toPx(pc.x,pc.y,ir);
-  const pxPerM=ir.w/10;
-  const size=0.62*pxPerM;
-  ctx.save();
-  ctx.shadowColor='rgba(0,0,0,.45)'; ctx.shadowBlur=6*scale; ctx.shadowOffsetY=2*scale;
-  roundRect(ctx, p.x-size/2, p.y-size/2, size, size, size*0.16);
-  ctx.fillStyle='#181818'; ctx.fill();
-  ctx.restore();
-  ctx.lineWidth=Math.max(1.6,2*scale); ctx.strokeStyle='#f4f7fa';
-  roundRect(ctx, p.x-size/2, p.y-size/2, size, size, size*0.16); ctx.stroke();
-  const ballR=size*0.15;
-  [[-0.22,-0.16],[0.16,-0.20],[-0.03,0.06],[0.24,0.14],[-0.26,0.20]].forEach(([dx,dy])=>{
-    const bx=p.x+dx*size, by=p.y+dy*size;
-    ctx.beginPath(); ctx.arc(bx,by,ballR,0,Math.PI*2);
-    const g=ctx.createRadialGradient(bx-ballR*0.3,by-ballR*0.3,ballR*0.1,bx,by,ballR);
-    g.addColorStop(0,'#eaff9a'); g.addColorStop(1,'#a9c23a');
-    ctx.fillStyle=g; ctx.fill();
-    ctx.lineWidth=Math.max(0.8,1*scale); ctx.strokeStyle='#7a8f2e'; ctx.stroke();
-  });
-}
-
-function drawPieces(pieces, ir){
-  const scale=ir.w/460;
-  pieces.forEach(pc=>{
-    if(!pc.onCourt) return;
-    if(pc.kind==='ficha') drawFicha(pc, ir, scale);
-    else if(pc.kind==='player') drawPlayerSilhouette(pc, ir, scale);
-    else if(pc.kind==='ball') drawBallIcon(pc, ir, scale);
-    else if(pc.kind==='cone') drawCone(pc, ir, scale);
-    else if(pc.kind==='basket') drawBasket(pc, ir, scale);
-  });
-}
-
-function render(piecesOverride, drawingsOverride, alphaOverride){
-  const ir=innerRect();
-  ctx.clearRect(0,0,ir.W,ir.H);
-  drawCourt(ir);
-  drawDrawings(drawingsOverride!==undefined?drawingsOverride:curStep().drawings, ir, alphaOverride);
-  drawPieces(piecesOverride||curStep().pieces, ir);
-  if(!piecesOverride && selectedPieceId){
-    const sel=curStep().pieces.find(pc=>pc.id===selectedPieceId && pc.onCourt && pc.kind==='player');
-    if(sel){ drawRotationHandle(sel, ir); drawHandBadge(sel, ir); }
-  }
-  if(livePreview) drawLivePreview(ir);
-}
-function drawRotationHandle(piece, ir){
-  const scale=ir.w/460;
-  const p=toPx(piece.x, piece.y, ir);
-  const hp=handlePixelPos(piece, ir);
-  ctx.save();
-  ctx.strokeStyle='rgba(244,247,250,.5)'; ctx.lineWidth=Math.max(1,1.4*scale);
-  ctx.setLineDash([4*scale,4*scale]);
-  ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(hp.x,hp.y); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.beginPath(); ctx.arc(hp.x,hp.y, ir.w*0.034, 0, Math.PI*2);
-  ctx.fillStyle='#a47122'; ctx.fill();
-  ctx.lineWidth=Math.max(1,2*scale); ctx.strokeStyle='#f4f7fa'; ctx.stroke();
-  // icono simple de rotación (arco con flecha)
-  ctx.beginPath();
-  ctx.arc(hp.x,hp.y, ir.w*0.017, -0.3, Math.PI*1.3);
-  ctx.strokeStyle='#f4f7fa'; ctx.lineWidth=Math.max(1,1.6*scale); ctx.stroke();
-  ctx.restore();
-}
-function drawHandBadge(piece, ir){
-  const scale=ir.w/460;
-  const bp=handBadgePixelPos(piece, ir);
-  ctx.save();
-  ctx.beginPath(); ctx.arc(bp.x,bp.y, ir.w*0.03, 0, Math.PI*2);
-  ctx.fillStyle='#0f3b72'; ctx.fill();
-  ctx.lineWidth=Math.max(1,2*scale); ctx.strokeStyle='#dfa243'; ctx.stroke();
-  ctx.fillStyle='#dfa243';
-  ctx.font=`700 ${Math.max(10,12*scale)}px Inter, sans-serif`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(piece.hand==='left'?'I':'D', bp.x, bp.y+1);
-  ctx.restore();
-}
-
-/* ============ INTERACCIÓN ============ */
-let livePreview=null; // {type, from, points, colorpreview}
-let draggingPiece=null;
-let lastDragNorm=null; // última posición normalizada (sin clampear) durante el arrastre, para saber si se soltó afuera
-let drawingPath=null;
-let curvePath=null; // puntos arrastrados con la herramienta "globo", para ajustar la curva al soltar
-let selectedPieceId=null; // pieza con el handle de rotación visible (solo aplica a jugadores)
-let rotatingPiece=null;
-
-function facingVector(rot){ return {x:Math.sin(rot), y:-Math.cos(rot)}; }
-function handlePixelPos(piece, ir){
-  const p=toPx(piece.x, piece.y, ir);
-  const pxPerM=ir.w/10;
-  const dist=1.5*pxPerM;
-  const f=facingVector(piece.rot||0);
-  return { x:p.x+f.x*dist, y:p.y+f.y*dist };
-}
-// badge para cambiar la mano hábil: ubicado detrás del jugador (lado opuesto a la cabeza),
-// para no superponerse ni con el brazo+pala ni con el handle de rotación
-function handBadgePixelPos(piece, ir){
-  const p=toPx(piece.x, piece.y, ir);
-  const pxPerM=ir.w/10;
-  const dist=0.95*pxPerM;
-  const f=facingVector(piece.rot||0);
-  return { x:p.x-f.x*dist, y:p.y-f.y*dist };
-}
-
-function pointerNorm(evt){
-  const rect=canvas.getBoundingClientRect();
-  const dpr=window.devicePixelRatio||1;
-  const px=(evt.clientX-rect.left)*dpr, py=(evt.clientY-rect.top)*dpr;
-  const ir=innerRect();
-  return { nx:(px-ir.x0)/ir.w, ny:(py-ir.y0)/ir.h, px, py, ir };
-}
-function nearestPiece(nx,ny,ir){
-  let best=null,bestD=Infinity;
-  curStep().pieces.filter(pc=>pc.onCourt).forEach(pc=>{
-    const p=toPx(pc.x,pc.y,ir);
-    const q=toPx(nx,ny,ir);
-    const d=Math.hypot(p.x-q.x,p.y-q.y);
-    if(d<bestD){bestD=d;best=pc;}
-  });
-  const r=ir.w*FICHA_R_FRAC*3.0; // generoso: cubre el alcance del brazo+pala de la silueta
-  return bestD<=r ? best : null;
-}
-function distPointSeg(p,a,b){
-  const abx=b.x-a.x, aby=b.y-a.y;
-  const len2=abx*abx+aby*aby || 1;
-  let t=((p.x-a.x)*abx+(p.y-a.y)*aby)/len2;
-  t=clamp(t,0,1);
-  const cx=a.x+abx*t, cy=a.y+aby*t;
-  return Math.hypot(p.x-cx,p.y-cy);
-}
-function findDrawingAt(nx,ny,ir){
-  const q=toPx(nx,ny,ir);
-  const list=curStep().drawings;
-  for(let i=list.length-1;i>=0;i--){
-    const d=list[i];
-    if(d.type==='text'){
-      const p=toPx(d.x,d.y,ir);
-      if(Math.hypot(p.x-q.x,p.y-q.y) < ir.w*0.09) return i;
-    } else if(d.type==='arrow'){
-      const p1=toPx(d.from.x,d.from.y,ir), p2=toPx(d.to.x,d.to.y,ir);
-      if(distPointSeg(q,p1,p2) < ir.w*0.035) return i;
-    } else if(d.type==='path'){
-      for(const pt of d.points){
-        const p=toPx(pt.x,pt.y,ir);
-        if(Math.hypot(p.x-q.x,p.y-q.y) < ir.w*0.035) return i;
-      }
-    } else if(d.type==='curve'){
-      const p1=toPx(d.from.x,d.from.y,ir), p2=toPx(d.to.x,d.to.y,ir), pc_=toPx(d.control.x,d.control.y,ir);
-      for(let t=0;t<=1;t+=0.08){
-        const x=(1-t)*(1-t)*p1.x + 2*(1-t)*t*pc_.x + t*t*p2.x;
-        const y=(1-t)*(1-t)*p1.y + 2*(1-t)*t*pc_.y + t*t*p2.y;
-        if(Math.hypot(x-q.x,y-q.y) < ir.w*0.035) return i;
-      }
-    }
-  }
-  return -1;
-}
-
-function drawLivePreview(ir){
-  if(!livePreview) return;
-  if(livePreview.type==='arrow'){
-    const p1=toPx(livePreview.from.x,livePreview.from.y,ir), p2=toPx(livePreview.to.x,livePreview.to.y,ir);
-    ctx.strokeStyle=state.drawColor; ctx.lineWidth=4; ctx.lineCap='round'; ctx.globalAlpha=0.85;
-    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
-    drawArrowHead(p1,p2,state.drawColor,ir.w/460);
-    ctx.globalAlpha=1;
-  } else if(livePreview.type==='path'){
-    if(livePreview.points.length<2) return;
-    ctx.strokeStyle=state.drawColor; ctx.lineWidth=4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.globalAlpha=0.85;
-    ctx.beginPath();
-    const p0=toPx(livePreview.points[0].x,livePreview.points[0].y,ir);
-    ctx.moveTo(p0.x,p0.y);
-    livePreview.points.forEach(pt=>{ const p=toPx(pt.x,pt.y,ir); ctx.lineTo(p.x,p.y); });
-    ctx.stroke(); ctx.globalAlpha=1;
-  } else if(livePreview.type==='curveDraft'){
-    if(livePreview.points.length<2) return;
-    ctx.strokeStyle=state.drawColor; ctx.lineWidth=3; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.globalAlpha=0.6;
-    ctx.setLineDash([6,5]);
-    ctx.beginPath();
-    const p0=toPx(livePreview.points[0].x,livePreview.points[0].y,ir);
-    ctx.moveTo(p0.x,p0.y);
-    livePreview.points.forEach(pt=>{ const p=toPx(pt.x,pt.y,ir); ctx.lineTo(p.x,p.y); });
-    ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
-  }
-}
-
-canvas.addEventListener('pointerdown', evt=>{
-  if(state.playing) return;
-  canvas.setPointerCapture(evt.pointerId);
-  const {nx,ny,ir}=pointerNorm(evt);
-  if(nx<-0.1||nx>1.1||ny<-0.1||ny>1.1) return;
-
-  // el handle de rotación / badge de mano de la pieza seleccionada siempre tienen prioridad
-  if(selectedPieceId){
-    const sel=curStep().pieces.find(pc=>pc.id===selectedPieceId && pc.onCourt && pc.kind==='player');
-    if(sel){
-      const hp=handlePixelPos(sel, ir);
-      const q=toPx(nx,ny,ir);
-      if(Math.hypot(hp.x-q.x, hp.y-q.y) < ir.w*0.05){
-        pushHistory();
-        rotatingPiece=sel;
-        return;
-      }
-      const bp=handBadgePixelPos(sel, ir);
-      if(Math.hypot(bp.x-q.x, bp.y-q.y) < ir.w*0.045){
-        pushHistory();
-        sel.hand = sel.hand==='left' ? 'right' : 'left';
-        render(); scheduleAutosave(); refreshStepThumbs();
-        toast(sel.hand==='left' ? 'Jugador zurdo' : 'Jugador diestro');
-        return;
-      }
-    }
-  }
-
-  const pc=nearestPiece(nx,ny,ir);
-  // Flecha y Globo usan la pieza tocada como punto de partida del trazo (como ya hacían);
-  // el resto de las herramientas simplemente la arrastran, siempre, sin necesitar
-  // seleccionar ninguna herramienta especial para mover.
-  const usesPieceAsAnchor = (state.tool==='flecha' || state.tool==='globo');
-  if(pc && !usesPieceAsAnchor){
-    pushHistory(); draggingPiece=pc; lastDragNorm={nx,ny};
-    selectedPieceId=pc.id;
-    render();
-    return;
-  }
-
-  if(state.tool==='flecha'){
-    const from = pc? {x:pc.x,y:pc.y} : {x:clamp(nx,0,1),y:clamp(ny,0,1)};
-    livePreview={type:'arrow', from, to:{x:clamp(nx,0,1),y:clamp(ny,0,1)}};
-  } else if(state.tool==='globo'){
-    const from = pc? {x:pc.x,y:pc.y} : {x:clamp(nx,0,1),y:clamp(ny,0,1)};
-    curvePath=[from];
-    livePreview={type:'curveDraft', points:curvePath};
-  } else if(state.tool==='pincel'){
-    drawingPath=[{x:clamp(nx,0,1),y:clamp(ny,0,1)}];
-    livePreview={type:'path', points:drawingPath};
-  } else if(state.tool==='texto'){
-    openTextInput(evt.clientX, evt.clientY, nx, ny);
-  } else if(state.tool==='borrar'){
-    const idx=findDrawingAt(nx,ny,ir);
-    if(idx>=0){ pushHistory(); curStep().drawings.splice(idx,1); render(); scheduleAutosave(); toast('Elemento borrado'); }
-  } else {
-    selectedPieceId=null;
-    render();
-  }
-});
-canvas.addEventListener('pointermove', evt=>{
-  if(state.playing) return;
-  const {nx,ny,ir}=pointerNorm(evt);
-  if(rotatingPiece){
-    const p=toPx(rotatingPiece.x, rotatingPiece.y, ir);
-    const q=toPx(nx,ny,ir);
-    rotatingPiece.rot=Math.atan2(q.x-p.x, -(q.y-p.y));
-    render();
-  } else if(draggingPiece){
-    lastDragNorm={nx,ny};
-    draggingPiece.x=clamp(nx,0,1); draggingPiece.y=clamp(ny,0,1);
-    render();
-  } else if(livePreview && livePreview.type==='arrow'){
-    livePreview.to={x:clamp(nx,0,1),y:clamp(ny,0,1)};
-    render();
-  } else if(livePreview && livePreview.type==='path'){
-    drawingPath.push({x:clamp(nx,0,1),y:clamp(ny,0,1)});
-    render();
-  } else if(livePreview && livePreview.type==='curveDraft'){
-    curvePath.push({x:clamp(nx,0,1),y:clamp(ny,0,1)});
-    render();
-  }
-});
-function endPointer(){
-  if(rotatingPiece){
-    rotatingPiece=null;
-    scheduleAutosave(); refreshStepThumbs();
-  }
-  if(draggingPiece){
-    const OFF_MARGIN=0.18; // soltar bastante afuera de la cancha = devolver la pieza al banco
-    const wasReleasedOffCourt = lastDragNorm && (
-      lastDragNorm.nx<-OFF_MARGIN || lastDragNorm.nx>1+OFF_MARGIN ||
-      lastDragNorm.ny<-OFF_MARGIN || lastDragNorm.ny>1+OFF_MARGIN
-    );
-    if(wasReleasedOffCourt){
-      draggingPiece.onCourt=false;
-      refreshBench();
-      toast('Pieza devuelta al banco');
-    }
-    draggingPiece=null; lastDragNorm=null;
-    render(); scheduleAutosave(); refreshStepThumbs();
-  }
-  if(livePreview && livePreview.type==='arrow'){
-    const dx=livePreview.to.x-livePreview.from.x, dy=livePreview.to.y-livePreview.from.y;
-    if(Math.hypot(dx,dy) > 0.02){
-      pushHistory();
-      curStep().drawings.push({type:'arrow', from:livePreview.from, to:livePreview.to, color:state.drawColor});
-    }
-    livePreview=null; render(); scheduleAutosave(); refreshStepThumbs();
-  } else if(livePreview && livePreview.type==='path'){
-    if(drawingPath.length>2){
-      pushHistory();
-      curStep().drawings.push({type:'path', points:drawingPath, color:state.drawColor});
-    }
-    livePreview=null; drawingPath=null; render(); scheduleAutosave(); refreshStepThumbs();
-  } else if(livePreview && livePreview.type==='curveDraft'){
-    const pts=curvePath;
-    const from=pts[0], to=pts[pts.length-1];
-    const dx=to.x-from.x, dy=to.y-from.y;
-    if(Math.hypot(dx,dy) > 0.02){
-      pushHistory();
-      const control=fitCurveControl(pts, from, to);
-      curStep().drawings.push({type:'curve', from, to, control, color:state.drawColor});
-    }
-    livePreview=null; curvePath=null; render(); scheduleAutosave(); refreshStepThumbs();
-  }
-}
-// Calcula el punto de control de una curva cuadrática a partir del trazo que arrastró el
-// dedo: usa la mayor desviación perpendicular a la recta inicio->fin (con el lado que el
-// propio trazo indica), y garantiza un mínimo de curvatura aunque el arrastre haya sido
-// casi recto, para que el "globo" siempre se vea claramente arqueado.
-function fitCurveControl(points, from, to){
-  const dx=to.x-from.x, dy=to.y-from.y;
-  const len=Math.hypot(dx,dy)||0.0001;
-  const nx=-dy/len, ny=dx/len; // normal unitaria a la recta from->to
-  let maxDev=0;
-  points.forEach(pt=>{
-    const vx=pt.x-from.x, vy=pt.y-from.y;
-    const dev=vx*nx+vy*ny;
-    if(Math.abs(dev)>Math.abs(maxDev)) maxDev=dev;
-  });
-  const minDev=len*0.16;
-  if(Math.abs(maxDev)<minDev) maxDev = minDev; // curvatura mínima garantizada, siempre hacia el mismo lado por defecto
-  const midx=(from.x+to.x)/2, midy=(from.y+to.y)/2;
-  return { x: midx+nx*maxDev*2, y: midy+ny*maxDev*2 };
-}
-canvas.addEventListener('pointerup', endPointer);
-canvas.addEventListener('pointercancel', endPointer);
-
-/* texto */
-const textOverlay=document.getElementById('textInputOverlay');
-const textField=document.getElementById('textInputField');
-let pendingTextPos=null;
-function openTextInput(clientX, clientY, nx, ny){
-  const wrapRect=document.getElementById('court-frame').getBoundingClientRect();
-  textOverlay.style.left=(clientX-wrapRect.left)+'px';
-  textOverlay.style.top=(clientY-wrapRect.top)+'px';
-  textOverlay.style.display='block';
-  pendingTextPos={x:clamp(nx,0,1),y:clamp(ny,0,1)};
-  textField.value=''; textField.focus();
-}
-function commitTextInput(){
-  const val=textField.value.trim();
-  textOverlay.style.display='none';
-  if(val && pendingTextPos){
-    pushHistory();
-    curStep().drawings.push({type:'text', x:pendingTextPos.x, y:pendingTextPos.y, label:val, color:state.drawColor});
-    render(); scheduleAutosave(); refreshStepThumbs();
-  }
-  pendingTextPos=null;
-}
-textField.addEventListener('keydown', e=>{ if(e.key==='Enter') commitTextInput(); if(e.key==='Escape'){ textOverlay.style.display='none'; pendingTextPos=null; } });
-textField.addEventListener('blur', ()=>setTimeout(commitTextInput,80));
-
-/* ============ HERRAMIENTAS / TOOLBAR ============ */
-document.querySelectorAll('.tool-btn[data-tool]').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tool-btn[data-tool]').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    state.tool=btn.dataset.tool;
-    render();
-  });
-});
-document.querySelectorAll('.swatch').forEach(sw=>{
-  sw.addEventListener('click', ()=>{
-    document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
-    sw.classList.add('active');
-    state.drawColor=sw.dataset.color;
-  });
-});
-document.getElementById('btnClearCourt').addEventListener('click', ()=>{
-  if(!curStep().drawings.length) return;
-  pushHistory();
-  curStep().drawings=[];
-  render(); scheduleAutosave(); refreshStepThumbs();
-  toast('Cancha limpia');
-});
-document.getElementById('btnUndo').addEventListener('click', undo);
-document.getElementById('btnToggleSteps').addEventListener('click', ()=>{
-  const stepsEl=document.getElementById('steps');
-  const collapsed=stepsEl.classList.toggle('collapsed');
-  if(collapsed){
-    document.documentElement.style.setProperty('--steps-dim','34px');
-  } else {
-    document.documentElement.style.removeProperty('--steps-dim');
-  }
-  setTimeout(resizeCanvas, 50); // la cancha crece/achica: recalculamos su tamaño real
-});
-document.getElementById('btnNewBoard').addEventListener('click', ()=>{
-  if(!confirm('¿Reiniciar la pizarra? Se pierden los pasos y dibujos actuales (las jugadas ya guardadas en la biblioteca no se tocan, y podés deshacer esto con la flechita).')) return;
-  pushHistory();
-  state.steps=[defaultStep()];
-  state.currentStepIndex=0;
-  state.tool='pincel';
-  state.drawColor='#ff5a36';
-  document.querySelectorAll('.tool-btn[data-tool]').forEach(b=>b.classList.remove('active'));
-  const pincelBtn=document.querySelector('.tool-btn[data-tool="pincel"]');
-  if(pincelBtn) pincelBtn.classList.add('active');
-  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
-  const orangeSwatch=document.querySelector('.swatch[data-color="#ff5a36"]');
-  if(orangeSwatch) orangeSwatch.classList.add('active');
-  selectedPieceId=null;
-  renderAll();
-  scheduleAutosave();
-  toast('Pizarra reiniciada');
-});
-
-/* ============ BANCO (piezas sin colocar) ============ */
-const benchEl=document.getElementById('bench');
-
-// Ícono mini para un chip del banco: mismo lenguaje visual que en cancha pero a tamaño
-// reducido, sin contexto de "hacia dónde mira" (se dibuja siempre mirando hacia arriba).
-function renderBenchIcon(cnv, pc){
-  const size=cnv.width;
-  const bctx=cnv.getContext('2d');
-  bctx.clearRect(0,0,size,size);
-  const cx=size/2, cy=size/2;
-  if(pc.kind==='ball'){
-    const r=size*0.34;
-    const grad=bctx.createRadialGradient(cx-r*0.3,cy-r*0.3,r*0.1,cx,cy,r);
-    grad.addColorStop(0,'#eaff9a'); grad.addColorStop(1,'#a9c23a');
-    bctx.beginPath(); bctx.arc(cx,cy,r,0,Math.PI*2); bctx.fillStyle=grad; bctx.fill();
-    bctx.lineWidth=size*0.03; bctx.strokeStyle='#7a8f2e'; bctx.stroke();
-    return;
-  }
-  if(pc.kind==='cone'){
-    const h=size*0.62, baseW=size*0.5;
-    const color = pc.variant==='green' ? '#16a085' : '#ff7a1a';
-    bctx.beginPath();
-    bctx.moveTo(cx, cy-h/2);
-    bctx.lineTo(cx+baseW/2, cy+h/2);
-    bctx.lineTo(cx-baseW/2, cy+h/2);
-    bctx.closePath();
-    bctx.fillStyle=color; bctx.fill();
-    bctx.lineWidth=size*0.035; bctx.strokeStyle='#f4f7fa'; bctx.stroke();
-    bctx.beginPath();
-    bctx.moveTo(cx-baseW*0.24, cy+h*0.04);
-    bctx.lineTo(cx+baseW*0.24, cy+h*0.04);
-    bctx.lineTo(cx+baseW*0.34, cy+h*0.24);
-    bctx.lineTo(cx-baseW*0.34, cy+h*0.24);
-    bctx.closePath();
-    bctx.fillStyle='#f4f7fa'; bctx.fill();
-    return;
-  }
-  if(pc.kind==='basket'){
-    const s=size*0.68;
-    bctx.beginPath();
-    bctx.moveTo(cx-s/2+s*0.16, cy-s/2);
-    bctx.lineTo(cx+s/2-s*0.16, cy-s/2);
-    bctx.quadraticCurveTo(cx+s/2,cy-s/2,cx+s/2,cy-s/2+s*0.16);
-    bctx.lineTo(cx+s/2, cy+s/2-s*0.16);
-    bctx.quadraticCurveTo(cx+s/2,cy+s/2,cx+s/2-s*0.16,cy+s/2);
-    bctx.lineTo(cx-s/2+s*0.16, cy+s/2);
-    bctx.quadraticCurveTo(cx-s/2,cy+s/2,cx-s/2,cy+s/2-s*0.16);
-    bctx.lineTo(cx-s/2, cy-s/2+s*0.16);
-    bctx.quadraticCurveTo(cx-s/2,cy-s/2,cx-s/2+s*0.16,cy-s/2);
-    bctx.closePath();
-    bctx.fillStyle='#181818'; bctx.fill();
-    bctx.lineWidth=size*0.03; bctx.strokeStyle='#f4f7fa'; bctx.stroke();
-    const ballR=s*0.15;
-    [[-0.22,-0.16],[0.16,-0.20],[-0.03,0.08],[0.24,0.16]].forEach(([dx,dy])=>{
-      const bx=cx+dx*s, by=cy+dy*s;
-      bctx.beginPath(); bctx.arc(bx,by,ballR,0,Math.PI*2);
-      const g=bctx.createRadialGradient(bx-ballR*0.3,by-ballR*0.3,ballR*0.1,bx,by,ballR);
-      g.addColorStop(0,'#eaff9a'); g.addColorStop(1,'#a9c23a');
-      bctx.fillStyle=g; bctx.fill();
-      bctx.lineWidth=size*0.012; bctx.strokeStyle='#7a8f2e'; bctx.stroke();
+  function listenTx(){
+    unsubTx=onSnapshot(query(txCol(),orderBy("date","desc")),snap=>{
+      store.tx=snap.docs.map(d=>({id:d.id,...d.data()}));renderAll();
     });
-    return;
   }
-  const color=state.team[pc.team].color;
-  if(pc.kind==='ficha'){
-    const r=size*0.34;
-    bctx.beginPath(); bctx.arc(cx,cy,r,0,Math.PI*2); bctx.fillStyle=color; bctx.fill();
-    bctx.lineWidth=size*0.045; bctx.strokeStyle='#f4f7fa'; bctx.stroke();
-    bctx.fillStyle=luminance(color)>0.55?'#0a1626':'#f4f7fa';
-    bctx.font=`700 ${size*0.32}px Inter, sans-serif`;
-    bctx.textAlign='center'; bctx.textBaseline='middle';
-    bctx.fillText(pc.num, cx, cy+size*0.01);
-  } else if(pc.kind==='player'){
-    const sW=size*0.25, hW=size*0.175, hl=size*0.19;
-    const headR=size*0.125, headGap=size*0.03;
-    const footR=size*0.075, footSpread=size*0.16, footBack=size*0.09;
-    const armLen=size*0.30;
-    bctx.save();
-    bctx.translate(cx,cy);
-    // pies
-    bctx.fillStyle=color; bctx.lineWidth=size*0.018; bctx.strokeStyle='#f4f7fa';
-    [-1,1].forEach(side=>{
-      bctx.beginPath(); bctx.ellipse(side*footSpread, hl+footBack, footR*0.62, footR, 0, 0, Math.PI*2);
-      bctx.fill(); bctx.stroke();
-    });
-    // torso ahusado
-    bctx.beginPath();
-    bctx.moveTo(-hW, hl);
-    bctx.quadraticCurveTo(-sW*1.08, 0, -sW, -hl);
-    bctx.quadraticCurveTo(0, -hl-sW*0.32, sW, -hl);
-    bctx.quadraticCurveTo(sW*1.08, 0, hW, hl);
-    bctx.quadraticCurveTo(0, hl+hW*0.32, -hW, hl);
-    bctx.closePath();
-    bctx.fillStyle=color; bctx.fill();
-    bctx.lineWidth=size*0.032; bctx.strokeStyle='#f4f7fa'; bctx.stroke();
-    // cabeza
-    const headY=-hl-headGap-headR;
-    bctx.beginPath(); bctx.arc(0,headY,headR,0,Math.PI*2);
-    bctx.fillStyle=color; bctx.fill();
-    bctx.lineWidth=size*0.025; bctx.strokeStyle='#f4f7fa'; bctx.stroke();
-    // brazo + pala
-    bctx.lineWidth=size*0.05; bctx.strokeStyle=color; bctx.lineCap='round';
-    bctx.beginPath(); bctx.moveTo(0,0); bctx.lineTo(armLen,-armLen*0.55); bctx.stroke();
-    bctx.save();
-    bctx.translate(armLen+size*0.065, -armLen*0.55-size*0.01);
-    bctx.rotate(-0.5);
-    bctx.beginPath(); bctx.ellipse(0,0,size*0.11,size*0.055,0,0,Math.PI*2);
-    bctx.fillStyle=color; bctx.fill();
-    bctx.lineWidth=size*0.018; bctx.strokeStyle='#f4f7fa'; bctx.stroke();
-    bctx.restore();
-    bctx.fillStyle=luminance(color)>0.55?'#0a1626':'#f4f7fa';
-    bctx.font=`700 ${size*0.22}px Inter, sans-serif`;
-    bctx.textAlign='center'; bctx.textBaseline='middle';
-    bctx.fillText(pc.num, 0, size*0.02);
-    bctx.restore();
+
+  wireAuthScreen({onSubmit:async (mode,email,pass)=>{
+    if(mode==="signup")await createUserWithEmailAndPassword(auth,email,pass);
+    else await signInWithEmailAndPassword(auth,email,pass);
+  }});
+  document.getElementById("logoutBtn").classList.remove("hidden");
+  document.getElementById("logoutBtn").onclick=()=>signOut(auth);
+
+  onAuthStateChanged(auth,async user=>{
+    if(user){
+      uid=user.uid;CURRENT_USER=user.email;
+      document.getElementById("userTag").textContent=user.email;
+      await loadConfig();listenTx();showApp();
+    }else{
+      uid=null;if(unsubTx)unsubTx();store.tx=[];showAuth();
+    }
+  });
+
+  return {
+    async add(t){await addDoc(txCol(),{...t,createdAt:serverTimestamp()});},
+    async update(id,patch){await updateDoc(doc(db,"users",uid,"tx",id),patch);},
+    async remove(id){await deleteDoc(doc(db,"users",uid,"tx",id));},
+    async persistConfig(){await setDoc(cfgRef(),store.config);},
+  };
+}
+
+/* =========================================================================
+   4)  RENDER
+   ========================================================================= */
+let viewMonth=new Date(); viewMonth.setDate(1);
+let hiddenCats=new Set();
+let editingId=null, editingType="expense";
+function inMonth(t){const d=new Date(t.date+"T00:00:00");return d.getFullYear()===viewMonth.getFullYear()&&d.getMonth()===viewMonth.getMonth();}
+function monthTx(){return store.tx.filter(inMonth);}
+function monthExpenses(){return store.tx.filter(t=>isExp(t)&&inMonth(t));}
+function monthExpensesReal(){return monthExpenses().filter(e=>e.amount>0);}  // excluye registros en ₲0 (compras con tarjeta aún sin pagar)
+function monthIncomes(){return store.tx.filter(t=>isInc(t)&&inMonth(t));}
+function groupByCat(items){const m={};for(const e of items)m[e.category]=(m[e.category]||0)+e.amount;return m;}
+function escapeHtml(s){return (s||"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
+function hexA(c){return c.startsWith("var(")?"var(--surface-2)":c+"22";}
+function fillSelect(sel,options,value){sel.innerHTML="";for(const o of options){const op=document.createElement("option");op.value=o;op.textContent=o;if(o===value)op.selected=true;sel.appendChild(op);}}
+
+function renderAll(){ renderHero();renderForm();renderFondos();renderMovs();renderStats();renderAjustes(); }
+
+function renderHero(){
+  document.getElementById("monthLabel").textContent=viewMonth.toLocaleDateString(LOCALE,{month:"short",year:"2-digit"});
+  const s=saldo();
+  const saldoEl=document.getElementById("heroSaldo");
+  saldoEl.textContent=fmt(s);
+  saldoEl.classList.toggle("neg",s<0);
+  const exp=monthExpensesReal();
+  const monthSpent=exp.reduce((a,e)=>a+e.amount,0);
+  const monthEarned=monthIncomes().reduce((a,e)=>a+e.amount,0);
+  document.getElementById("heroMonthSpent").textContent=fmt(monthSpent);
+  document.getElementById("heroMonthIncome").textContent=fmt(monthEarned);
+  // barra de categorías del mes
+  const byCat=groupByCat(exp), stack=document.getElementById("heroStack"), legend=document.getElementById("heroLegend");
+  stack.innerHTML="";legend.innerHTML="";
+  const entries=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  for(const [cat,val] of entries){const i=document.createElement("i");i.style.width=(val/monthSpent*100)+"%";i.style.background=catStyle(cat).color;stack.appendChild(i);}
+  for(const [cat,val] of entries.slice(0,4)){const dv=document.createElement("div");dv.innerHTML=`<span class="swatch" style="background:${catStyle(cat).color}"></span>${cat} <b>${fmt(val)}</b>`;legend.appendChild(dv);}
+}
+
+function renderForm(){
+  fillSelect(document.getElementById("f-cat"),store.config.categories);
+  fillSelect(document.getElementById("f-pay"),PAYMENTS);
+  fillSelect(document.getElementById("i-pay"),INCOME_PAYMENTS);
+  fillSelect(document.getElementById("t-dir"),TRANSFERS);
+  for(const id of ["f-date","i-date","t-date"]){const el=document.getElementById(id);if(!el.value)el.value=new Date().toISOString().slice(0,10);}
+}
+
+/* Bolsillos: efectivo vs cuenta. Todo lo que NO es efectivo cuenta como "cuenta"
+   (débito, crédito y transferencia). Así los dos bolsillos suman el saldo exacto. */
+function buckets(){
+  let efectivo=0, cuenta=0;
+  for(const t of store.tx){
+    if(isTransfer(t)){
+      // mueve entre bolsillos sin cambiar el saldo total
+      if(t.from==="Efectivo"){ efectivo-=t.amount; cuenta+=t.amount; }
+      else { cuenta-=t.amount; efectivo+=t.amount; }
+      continue;
+    }
+    const amt = isInc(t)? t.amount : -t.amount;
+    if(t.payment==="Efectivo") efectivo+=amt; else cuenta+=amt;
+  }
+  return {efectivo,cuenta};
+}
+
+function renderFondos(){
+  document.getElementById("kpiIngresos").textContent=fmt(totalIncome());
+  document.getElementById("kpiGastos").textContent=fmt(totalExpense());
+  const sEl=document.getElementById("kpiSaldo"); const s=saldo();
+  sEl.textContent=fmt(s); sEl.classList.toggle("neg",s<0);
+
+  const b=buckets();
+  const efEl=document.getElementById("kpiEfectivo"); efEl.textContent=fmt(b.efectivo); efEl.classList.toggle("neg",b.efectivo<0);
+  const cuEl=document.getElementById("kpiCuenta");  cuEl.textContent=fmt(b.cuenta);   cuEl.classList.toggle("neg",b.cuenta<0);
+
+  const list=document.getElementById("incomeList");
+  const items=monthIncomes().slice().sort((a,b)=>b.date.localeCompare(a.date));
+  if(!items.length){list.innerHTML=`<div class="empty"><div class="big">💰</div>No cargaste ingresos en este período.</div>`;return;}
+  list.innerHTML="";
+  for(const e of items){
+    const dd=new Date(e.date+"T00:00:00");
+    const row=document.createElement("div");row.className="tx";row.onclick=()=>openEdit(e.id);
+    row.innerHTML=`<div class="ic" style="background:var(--brand-soft)">💰</div>
+      <div class="meta"><div class="desc">${escapeHtml(e.description||"Ingreso")}</div>
+      <div class="sub">${dd.toLocaleDateString(LOCALE,{day:"numeric",month:"long"})}${e.payment?" · "+e.payment:""}</div></div>
+      <div class="val income num">+${fmt(e.amount)}</div>`;
+    list.appendChild(row);
   }
 }
 
-function attachBenchDrag(chip, pc){
-  chip.addEventListener('pointerdown', evt=>{
-    if(state.playing) return;
-    evt.preventDefault();
-    chip.classList.add('dragging-source');
-    const ghost=chip.cloneNode(true);
-    ghost.classList.add('bench-ghost');
-    ghost.classList.remove('dragging-source');
-    ghost.style.left=evt.clientX+'px';
-    ghost.style.top=evt.clientY+'px';
-    document.body.appendChild(ghost);
-
-    function move(e){
-      ghost.style.left=e.clientX+'px';
-      ghost.style.top=e.clientY+'px';
-    }
-    function up(e){
-      document.removeEventListener('pointermove', move);
-      document.removeEventListener('pointerup', up);
-      ghost.remove();
-      chip.classList.remove('dragging-source');
-      const rect=canvas.getBoundingClientRect();
-      const inside = e.clientX>=rect.left && e.clientX<=rect.right && e.clientY>=rect.top && e.clientY<=rect.bottom;
-      if(inside){
-        const dpr=window.devicePixelRatio||1;
-        const px=(e.clientX-rect.left)*dpr, py=(e.clientY-rect.top)*dpr;
-        const ir=innerRect();
-        const nx=(px-ir.x0)/ir.w, ny=(py-ir.y0)/ir.h;
-        pushHistory();
-        pc.onCourt=true;
-        pc.x=clamp(nx,0,1); pc.y=clamp(ny,0,1);
-        if(pc.kind==='player') pc.rot = pc.y>0.5 ? 0 : Math.PI;
-        selectedPieceId=pc.id;
-        renderAll(); scheduleAutosave();
+function renderMovs(){
+  const list=document.getElementById("txList");
+  const items=monthTx().slice().sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)));
+  if(!items.length){list.innerHTML=`<div class="empty"><div class="big">🧾</div>No hay movimientos en este período.<br>Cargá un gasto o un ingreso.</div>`;return;}
+  const byDay={};for(const e of items)(byDay[e.date]||=[]).push(e);
+  list.innerHTML="";
+  for(const day of Object.keys(byDay)){
+    const g=document.createElement("div");g.className="daygroup";
+    const net=byDay[day].reduce((s,e)=>s+(isInc(e)?e.amount:isExp(e)?-e.amount:0),0);
+    const dd=new Date(day+"T00:00:00");
+    const head=document.createElement("div");head.className="dayhead";
+    head.innerHTML=`<span>${dd.toLocaleDateString(LOCALE,{weekday:"long",day:"numeric",month:"long"})}</span><span class="num">${net>=0?"+":""}${fmt(net)}</span>`;
+    g.appendChild(head);
+    for(const e of byDay[day]){
+      if(isTransfer(e)){
+        const row=document.createElement("div");row.className="tx";row.onclick=()=>openEdit(e.id);
+        row.innerHTML=`<div class="ic" style="background:var(--surface-2)">🔄</div>
+          <div class="meta"><div class="desc">Traspaso</div><div class="sub">${e.from} → ${e.to}</div></div>
+          <div class="val num" style="color:var(--muted);font-weight:500">${fmt(e.amount)}</div>`;
+        g.appendChild(row);
+      }else if(isInc(e)){
+        const row=document.createElement("div");row.className="tx";row.onclick=()=>openEdit(e.id);
+        row.innerHTML=`<div class="ic" style="background:var(--brand-soft)">💰</div>
+          <div class="meta"><div class="desc">${escapeHtml(e.description||"Ingreso")}</div><div class="sub">Ingreso</div></div>
+          <div class="val income num">+${fmt(e.amount)}</div>`;
+        g.appendChild(row);
+      }else{
+        const st=catStyle(e.category);
+        const zero=e.amount===0;   // compra con tarjeta registrada, aún sin pagar
+        const row=document.createElement("div");row.className="tx";row.onclick=()=>openEdit(e.id);
+        row.innerHTML=`<div class="ic" style="background:${hexA(st.color)}">${st.icon}</div>
+          <div class="meta"><div class="desc">${escapeHtml(e.description||"(sin descripción)")}</div><div class="sub">${e.category} · ${e.payment}${zero?" · sin pagar":""}</div></div>
+          <div class="val num" ${zero?'style="color:var(--muted);font-weight:500"':''}>${fmt(e.amount)}</div>`;
+        g.appendChild(row);
       }
     }
-    document.addEventListener('pointermove', move);
-    document.addEventListener('pointerup', up);
+    list.appendChild(g);
+  }
+}
+
+function renderStats(){
+  const items=monthExpensesReal();
+  const visible=items.filter(e=>!hiddenCats.has(e.category));
+  const total=visible.reduce((s,e)=>s+e.amount,0);
+  const entries=Object.entries(groupByCat(items)).sort((a,b)=>b[1]-a[1]);
+  const monthEarned=monthIncomes().reduce((s,e)=>s+e.amount,0);
+  document.getElementById("kpiMesIngresos").textContent=fmt(monthEarned);
+  document.getElementById("kpiTotal").textContent=fmt(total);
+  const balEl=document.getElementById("kpiMesBalance");
+  const bal=monthEarned-total;                 // balance del mes: lo que entró menos lo que salió
+  balEl.textContent=(bal>0?"+":"")+fmt(bal);
+  balEl.classList.toggle("neg",bal<0);
+  balEl.classList.toggle("pos",bal>=0);
+  document.getElementById("kpiCount").textContent=visible.length;
+  const topVisible=entries.filter(([c])=>!hiddenCats.has(c))[0];
+  document.getElementById("kpiTop").textContent=topVisible?topVisible[0]:"—";
+  const wrap=document.getElementById("statBars");
+  if(!entries.length){wrap.innerHTML=`<div class="empty">Sin gastos en este período.</div>`;return;}
+  wrap.innerHTML="";
+  for(const [cat,val] of entries){
+    const off=hiddenCats.has(cat);
+    const pct= total>0&&!off?Math.round(val/total*100):0;
+    const r=document.createElement("div");r.className="statrow";
+    r.innerHTML=`<div class="top"><span class="nm ${off?'off':''}"><span class="swatch" style="background:${catStyle(cat).color}"></span>${cat}</span>
+      <span class="pct">${off?'<span class="toggle">oculta · mostrar</span>':`${fmt(val)} · ${pct}%`}</span></div>
+      <div class="bar"><i style="width:${off?0:Math.max(val/(entries[0][1])*100,2)}%;background:${catStyle(cat).color}"></i></div>`;
+    r.querySelector(".top").onclick=()=>{off?hiddenCats.delete(cat):hiddenCats.add(cat);renderStats();};
+    wrap.appendChild(r);
+  }
+}
+
+function renderAjustes(){
+  const chips=document.getElementById("catChips");chips.innerHTML="";
+  for(const c of store.config.categories){
+    const removable=!DEFAULT_CATEGORIES.includes(c);
+    const el=document.createElement("span");el.className="chip";
+    el.innerHTML=`<span class="sw" style="background:${catStyle(c).color}"></span>${c}`+(removable?`<button title="Quitar">✕</button>`:"");
+    if(removable)el.querySelector("button").onclick=()=>{store.config.categories=store.config.categories.filter(x=>x!==c);backend.persistConfig();renderAll();};
+    chips.appendChild(el);
+  }
+  fillSelect(document.getElementById("newRuleCat"),store.config.categories);
+  const rl=document.getElementById("ruleList");rl.innerHTML="";
+  store.config.rules.forEach((r,idx)=>{
+    const el=document.createElement("div");el.className="rule";
+    el.innerHTML=`<span class="kw">${escapeHtml(r.kw)}</span><span class="arrow">→</span>
+      <span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${catStyle(r.cat).color}"></span>
+      <span class="cat">${r.cat}</span><button title="Quitar">✕</button>`;
+    el.querySelector("button").onclick=()=>{store.config.rules.splice(idx,1);backend.persistConfig();renderAjustes();};
+    rl.appendChild(el);
   });
 }
 
-function refreshBench(){
-  benchEl.innerHTML='';
-  const offCourt=curStep().pieces.filter(pc=>!pc.onCourt);
-  if(!offCourt.length){
-    const empty=document.createElement('div');
-    empty.className='bench-empty';
-    empty.textContent='Todas las piezas están en la cancha';
-    benchEl.appendChild(empty);
-    return;
-  }
-  offCourt.forEach(pc=>{
-    const chip=document.createElement('div');
-    chip.className='bench-chip';
-    const dpr=window.devicePixelRatio||1;
-    const dispSize=44;
-    const cnv=document.createElement('canvas');
-    cnv.width=Math.round(dispSize*dpr); cnv.height=Math.round(dispSize*dpr);
-    chip.appendChild(cnv);
-    renderBenchIcon(cnv, pc);
-    attachBenchDrag(chip, pc);
-    benchEl.appendChild(chip);
-  });
-}
+/* =========================================================================
+   5)  INTERACCIÓN
+   ========================================================================= */
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    document.getElementById("v-"+b.dataset.go).classList.add("active");
+    window.scrollTo(0,0);
+  };
+});
+document.getElementById("prevMonth").onclick=()=>{viewMonth.setMonth(viewMonth.getMonth()-1);renderAll();};
+document.getElementById("nextMonth").onclick=()=>{viewMonth.setMonth(viewMonth.getMonth()+1);renderAll();};
 
-/* ============ PASOS ============ */
-const stepList=document.getElementById('stepList');
-const scoreboardValue=document.getElementById('scoreboardValue');
+const descEl=document.getElementById("f-desc"),catEl=document.getElementById("f-cat"),hint=document.getElementById("catHint");
+let userTouchedCat=false;
+catEl.addEventListener("change",()=>{userTouchedCat=true;});
+descEl.addEventListener("input",()=>{
+  const guess=classify(descEl.value);
+  if(descEl.value.trim()&&guess!=="Otros"){hint.className="cat-hint show";hint.innerHTML=`✦ Sugerido: <b style="color:${catStyle(guess).color}">&nbsp;${guess}</b>`;}
+  else hint.className="cat-hint";
+  if(!userTouchedCat)catEl.value=guess;
+});
+function flash(el){el.style.borderColor="var(--accent)";setTimeout(()=>el.style.borderColor="",600);el.focus();}
 
-function stepThumbDataURL(step, size){
-  size=size||160;
-  const off=document.createElement('canvas');
-  off.width=size; off.height=size*2;
-  const octx=off.getContext('2d');
-  const ir=innerRect(size, size*2);
-  const prevCtx=ctx;
-  ctx=octx;
-  try{
-    drawCourt(ir);
-    drawDrawings(step.drawings, ir, 1);
-    drawPieces(step.pieces, ir);
-  } finally {
-    ctx=prevCtx; // pase lo que pase, nunca dejamos el contexto global apuntando a un canvas descartado
-  }
-  return off.toDataURL('image/png');
-}
-
-function refreshStepThumbs(){
-  stepList.innerHTML='';
-  state.steps.forEach((step,i)=>{
-    const div=document.createElement('div');
-    div.className='step-thumb'+(i===state.currentStepIndex?' current':'');
-    const img=document.createElement('img');
-    img.src=stepThumbDataURL(step);
-    div.appendChild(img);
-    const num=document.createElement('div'); num.className='num'; num.textContent=i+1;
-    div.appendChild(num);
-    if(state.steps.length>1){
-      const del=document.createElement('div'); del.className='del'; del.textContent='×';
-      del.addEventListener('click', e=>{
-        e.stopPropagation();
-        pushHistory();
-        state.steps.splice(i,1);
-        if(state.currentStepIndex>=state.steps.length) state.currentStepIndex=state.steps.length-1;
-        renderAll();
-      });
-      div.appendChild(del);
-    }
-    div.addEventListener('click', ()=>{ state.currentStepIndex=i; renderAll(); });
-    stepList.appendChild(div);
-  });
-  scoreboardValue.textContent = String(state.currentStepIndex+1).padStart(2,'0')+' / '+String(state.steps.length).padStart(2,'0');
-}
-
-document.getElementById('btnAddStep').addEventListener('click', ()=>{
-  pushHistory();
-  const clone=deepClone(curStep());
-  state.steps.splice(state.currentStepIndex+1,0,clone);
-  state.currentStepIndex++;
-  renderAll();
-  toast('Paso agregado');
+// Mostrar el aviso del modo ₲0 solo cuando el pago es Crédito
+const fPayEl=document.getElementById("f-pay");
+fPayEl.addEventListener("change",()=>{
+  document.getElementById("credHint").classList.toggle("show", fPayEl.value==="Crédito");
 });
 
-/* ============ REPRODUCCIÓN ============ */
-const btnPlay=document.getElementById('btnPlay');
-function easeInOutQuad(t){ return t<0.5 ? 2*t*t : -1+(4-2*t)*t; }
-function lerp(a,b,t){ return a+(b-a)*t; }
-function lerpAngle(a,b,t){
-  let diff=((b-a+Math.PI)%(2*Math.PI))-Math.PI;
-  if(diff<-Math.PI) diff+=2*Math.PI;
-  return a+diff*t;
-}
+document.getElementById("saveBtn").onclick=async ()=>{
+  const pay=document.getElementById("f-pay").value;
+  let amount=parseFloat(document.getElementById("f-amount").value);
+  if(pay==="Crédito"){ if(isNaN(amount)||amount<0) amount=0; }   // crédito: ₲0 válido (registro sin pagar)
+  else if(!amount||amount<=0){ flash(document.getElementById("f-amount")); return; }
+  await backend.add({type:"expense",amount,description:descEl.value.trim(),category:catEl.value,
+    payment:pay,date:document.getElementById("f-date").value});
+  document.getElementById("f-amount").value="";descEl.value="";hint.className="cat-hint";userTouchedCat=false;
+  document.querySelector('nav button[data-go="mov"]').click();
+};
 
-async function playSequence(){
-  if(state.steps.length<2){ toast('Agregá al menos 2 pasos'); return; }
-  state.playing=true;
-  btnPlay.textContent='';
-  const stopIcon=document.createElement('span'); stopIcon.textContent='DETENER';
-  btnPlay.appendChild(stopIcon);
-  const TWEEN_MS = reducedMotion? 1 : 750;
-  const HOLD_MS = reducedMotion? 300 : 650;
+document.getElementById("saveIncomeBtn").onclick=async ()=>{
+  const amount=parseFloat(document.getElementById("i-amount").value);
+  if(!amount||amount<=0){flash(document.getElementById("i-amount"));return;}
+  await backend.add({type:"income",amount,description:document.getElementById("i-desc").value.trim(),
+    payment:document.getElementById("i-pay").value,date:document.getElementById("i-date").value});
+  document.getElementById("i-amount").value="";document.getElementById("i-desc").value="";
+};
 
-  for(let i=0;i<state.steps.length-1 && state.playing;i++){
-    const from=state.steps[i], to=state.steps[i+1];
-    const toMap={}; to.pieces.forEach(pc=>{ toMap[pc.id]=pc; });
-    // mostrar dibujos del paso "from" mientras se mueve, transicionando
-    const t0=performance.now();
-    await new Promise(resolve=>{
-      function frame(now){
-        if(!state.playing){ resolve(); return; }
-        let t=clamp((now-t0)/TWEEN_MS,0,1);
-        const et=easeInOutQuad(t);
-        const interp=from.pieces.filter(pc=>pc.onCourt).map(pc=>{
-          const target=toMap[pc.id];
-          if(target && target.onCourt){
-            const out={...pc, x:lerp(pc.x,target.x,et), y:lerp(pc.y,target.y,et)};
-            if(pc.rot!==undefined && target.rot!==undefined) out.rot=lerpAngle(pc.rot,target.rot,et);
-            return out;
-          }
-          return pc; // sale de la cancha recién al llegar al próximo paso; hasta entonces se queda quieta
-        });
-        const ir=innerRect();
-        ctx.clearRect(0,0,ir.W,ir.H);
-        drawCourt(ir);
-        drawDrawings(from.drawings, ir, 1-et);
-        drawDrawings(to.drawings, ir, et);
-        drawPieces(interp, ir);
-        if(t<1) requestAnimationFrame(frame); else resolve();
-      }
-      requestAnimationFrame(frame);
-    });
-    state.currentStepIndex=i+1;
-    scoreboardValue.textContent = String(i+2).padStart(2,'0')+' / '+String(state.steps.length).padStart(2,'0');
-    if(!state.playing) break;
-    await new Promise(r=>setTimeout(r,HOLD_MS));
-  }
-  state.playing=false;
-  btnPlay.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg> REPRODUCIR';
-  renderAll();
-}
-btnPlay.addEventListener('click', ()=>{
-  if(state.playing){ state.playing=false; }
-  else playSequence();
-});
+document.getElementById("saveTransferBtn").onclick=async ()=>{
+  const amount=parseFloat(document.getElementById("t-amount").value);
+  if(!amount||amount<=0){flash(document.getElementById("t-amount"));return;}
+  const [from,to] = document.getElementById("t-dir").value==="De Efectivo a Cuenta"
+    ? ["Efectivo","Cuenta"] : ["Cuenta","Efectivo"];
+  await backend.add({type:"transfer",amount,from,to,date:document.getElementById("t-date").value});
+  document.getElementById("t-amount").value="";
+  document.querySelector('nav button[data-go="mov"]').click();
+};
 
-/* ============ EQUIPOS ============ */
-const modalTeams=document.getElementById('modalTeams');
-document.getElementById('btnTeams').addEventListener('click', ()=>{
-  document.getElementById('colorA').value=state.team.A.color;
-  document.getElementById('nameA').value=state.team.A.name;
-  document.getElementById('colorB').value=state.team.B.color;
-  document.getElementById('nameB').value=state.team.B.name;
-  modalTeams.classList.add('open');
-});
-document.getElementById('btnTeamsSave').addEventListener('click', ()=>{
-  pushHistory();
-  state.team.A.color=document.getElementById('colorA').value;
-  state.team.A.name=document.getElementById('nameA').value.trim()||'Equipo A';
-  state.team.B.color=document.getElementById('colorB').value;
-  state.team.B.name=document.getElementById('nameB').value.trim()||'Equipo B';
-  updateTeamPills();
-  renderAll();
-  modalTeams.classList.remove('open');
-  scheduleAutosave();
-});
-function updateTeamPills(){
-  document.getElementById('pillAName').textContent=state.team.A.name;
-  document.getElementById('pillBName').textContent=state.team.B.name;
-  document.querySelector('#pillA .dot').style.background=state.team.A.color;
-  document.querySelector('#pillB .dot').style.background=state.team.B.color;
-}
+document.getElementById("addCatBtn").onclick=()=>{
+  const v=document.getElementById("newCat").value.trim();
+  if(v&&!store.config.categories.includes(v)){store.config.categories.splice(store.config.categories.length-1,0,v);document.getElementById("newCat").value="";backend.persistConfig();renderAll();}
+};
+document.getElementById("addRuleBtn").onclick=()=>{
+  const kw=document.getElementById("newKw").value.trim(),cat=document.getElementById("newRuleCat").value;
+  if(kw){store.config.rules.unshift({kw,cat});document.getElementById("newKw").value="";backend.persistConfig();renderAjustes();}
+};
 
-/* ============ GUARDAR / BIBLIOTECA ============ */
-const BASE_CATS=['Saques','Defensas','Ataques'];
-const modalSave=document.getElementById('modalSave');
-const modalLibrary=document.getElementById('modalLibrary');
-let selectedCat=BASE_CATS[0];
-let libraryCache=null;
-
-async function loadLibrary(force){
-  if(libraryCache && !force) return libraryCache;
-  try{
-    const res=await localDB.get('padel-library');
-    libraryCache = res && res.value ? JSON.parse(res.value) : {};
-  }catch(e){ libraryCache={}; }
-  return libraryCache;
-}
-async function saveLibrary(lib){
-  libraryCache=lib;
-  await localDB.set('padel-library', JSON.stringify(lib));
-}
-
-document.getElementById('btnSave').addEventListener('click', async ()=>{
-  const lib=await loadLibrary();
-  const cats=Array.from(new Set([...BASE_CATS, ...Object.values(lib).map(p=>p.category)]));
-  const chipsDiv=document.getElementById('catChips');
-  chipsDiv.innerHTML='';
-  cats.forEach(cat=>{
-    const chip=document.createElement('div');
-    chip.className='chip'+(cat===selectedCat?' active':'');
-    chip.textContent=cat;
-    chip.addEventListener('click', ()=>{
-      selectedCat=cat;
-      document.getElementById('newCatInput').style.display='none';
-      chipsDiv.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-      chip.classList.add('active');
-    });
-    chipsDiv.appendChild(chip);
-  });
-  const otherChip=document.createElement('div');
-  otherChip.className='chip'; otherChip.textContent='+ Nueva';
-  otherChip.addEventListener('click', ()=>{
-    document.getElementById('newCatInput').style.display='block';
-    document.getElementById('newCatInput').focus();
-    chipsDiv.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-    selectedCat=null;
-  });
-  chipsDiv.appendChild(otherChip);
-  document.getElementById('playName').value='';
-  document.getElementById('newCatInput').value='';
-  document.getElementById('newCatInput').style.display='none';
-  modalSave.classList.add('open');
-});
-document.getElementById('btnSaveConfirm').addEventListener('click', async ()=>{
-  const name=document.getElementById('playName').value.trim();
-  if(!name){ toast('Poné un nombre para la jugada'); return; }
-  const newCatVal=document.getElementById('newCatInput').value.trim();
-  const category = newCatVal || selectedCat || BASE_CATS[0];
-  const play={ id:uid(), name, category, team:deepClone(state.team), steps:deepClone(state.steps), updatedAt:Date.now() };
-  try{
-    const lib=await loadLibrary();
-    lib[play.id]=play;
-    await saveLibrary(lib);
-    toast('Jugada guardada ✓');
-    modalSave.classList.remove('open');
-  }catch(e){
-    toast('No se pudo guardar, probá de nuevo');
-  }
-});
-
-// Exportar una jugada (todos sus pasos + equipos) como archivo, para compartir por
-// WhatsApp/mail con otro profe o con los alumnos. Como son solo números y texto (nada
-// de imágenes), el archivo pesa unos pocos KB.
-async function exportPlayAsFile(play){
-  const dataStr=JSON.stringify(play, null, 2);
-  const blob=new Blob([dataStr], {type:'application/json'});
-  const safeName=play.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'jugada';
-  const fileName='jugada-'+safeName+'.json';
-  if(navigator.canShare && window.File){
-    try{
-      const file=new File([blob], fileName, {type:'application/json'});
-      if(navigator.canShare({files:[file]})){
-        await navigator.share({files:[file], title:'Jugada: '+play.name});
-        return;
-      }
-    }catch(e){ /* seguimos con descarga */ }
-  }
+/* Exportar los movimientos del mes visible a CSV (se abre en Excel;
+   separador ; y BOM para que los acentos y las columnas salgan bien). */
+function exportCSV(){
+  const items=monthTx().slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(!items.length){alert("No hay movimientos en este mes para exportar.");return;}
+  const monthTag=`${viewMonth.getFullYear()}-${String(viewMonth.getMonth()+1).padStart(2,"0")}`;
+  const sep=";";
+  const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  const header=["Fecha","Tipo","Descripción","Categoría","Medio de pago","Importe"];
+  const rows=items.map(t=>[
+    t.date,
+    isInc(t)?"Ingreso":isTransfer(t)?"Traspaso":"Gasto",
+    isTransfer(t)?"Traspaso entre bolsillos":(t.description||""),
+    isInc(t)||isTransfer(t)?"":(t.category||""),
+    isTransfer(t)?`${t.from} → ${t.to}`:(t.payment||""),
+    Math.round(t.amount)
+  ].map(q).join(sep));
+  const csv="\uFEFF"+[header.map(q).join(sep),...rows].join("\r\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=fileName; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 4000);
-  toast('Archivo exportado');
+  const a=document.createElement("a");
+  a.href=url; a.download=`cuentas-claras-${monthTag}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+document.getElementById("exportBtn").onclick=exportCSV;
 
-document.getElementById('btnImportPlay').addEventListener('click', ()=>{
-  document.getElementById('importFileInput').click();
-});
-document.getElementById('importFileInput').addEventListener('change', async (evt)=>{
-  const file=evt.target.files[0];
-  evt.target.value=''; // permite volver a importar el mismo archivo despues si hace falta
-  if(!file) return;
-  try{
-    const text=await file.text();
-    const play=JSON.parse(text);
-    if(!play || !Array.isArray(play.steps) || !play.team){
-      toast('El archivo no tiene el formato esperado');
-      return;
-    }
-    play.id=uid(); // id nuevo, para no pisar ninguna jugada existente
-    play.steps=migrateSteps(play.steps);
-    if(!play.category) play.category=BASE_CATS[0];
-    if(!play.name) play.name='Jugada importada';
-    play.updatedAt=Date.now();
-    const lib=await loadLibrary();
-    lib[play.id]=play;
-    await saveLibrary(lib);
-    toast('Jugada importada: '+play.name);
-    document.getElementById('btnLibrary').click(); // refresca el listado
-  }catch(err){
-    toast('No se pudo leer el archivo');
+function openEdit(id){
+  const e=store.tx.find(x=>x.id===id);if(!e)return;
+  editingId=id;editingType=e.type;
+  document.getElementById("e-amount").value=e.amount;
+  document.getElementById("e-date").value=e.date;
+  const catField=document.getElementById("e-cat-field");
+  const payField=document.getElementById("e-pay-field");
+  const descField=document.getElementById("e-desc").closest(".field");
+  if(isTransfer(e)){
+    document.getElementById("modalTitle").textContent="Editar traspaso";
+    descField.classList.add("hidden");
+    catField.classList.add("hidden");
+    payField.classList.remove("hidden");
+    payField.querySelector("label").textContent="Movimiento";
+    const dir = e.from==="Efectivo" ? "De Efectivo a Cuenta" : "De Cuenta a Efectivo";
+    fillSelect(document.getElementById("e-pay"),TRANSFERS,dir);
+  }else if(isInc(e)){
+    document.getElementById("modalTitle").textContent="Editar ingreso";
+    descField.classList.remove("hidden");
+    document.getElementById("e-desc").value=e.description;
+    catField.classList.add("hidden");                 // los ingresos no tienen categoría
+    payField.classList.remove("hidden");
+    payField.querySelector("label").textContent="Entra a";
+    fillSelect(document.getElementById("e-pay"),INCOME_PAYMENTS,e.payment);
+  }else{
+    document.getElementById("modalTitle").textContent="Editar gasto";
+    descField.classList.remove("hidden");
+    document.getElementById("e-desc").value=e.description;
+    catField.classList.remove("hidden");
+    payField.classList.remove("hidden");
+    payField.querySelector("label").textContent="Medio de pago";
+    fillSelect(document.getElementById("e-cat"),store.config.categories,e.category);
+    fillSelect(document.getElementById("e-pay"),PAYMENTS,e.payment);
   }
-});
+  document.getElementById("modal").classList.add("show");
+}
+function closeModal(){document.getElementById("modal").classList.remove("show");editingId=null;}
+document.getElementById("modal").addEventListener("click",ev=>{if(ev.target.id==="modal")closeModal();});
+document.getElementById("updateBtn").onclick=async ()=>{
+  let amount=parseFloat(document.getElementById("e-amount").value);
+  const date=document.getElementById("e-date").value;
 
-document.getElementById('btnLibrary').addEventListener('click', async ()=>{
-  const cont=document.getElementById('libContent');
-  cont.innerHTML='<div class="lib-empty">Cargando…</div>';
-  modalLibrary.classList.add('open');
-  const lib=await loadLibrary(true);
-  const plays=Object.values(lib).sort((a,b)=>b.updatedAt-a.updatedAt);
-  if(!plays.length){ cont.innerHTML='<div class="lib-empty">Todavía no guardaste ninguna jugada.</div>'; return; }
-  const byCat={};
-  plays.forEach(p=>{ (byCat[p.category]=byCat[p.category]||[]).push(p); });
-  cont.innerHTML='';
-  Object.keys(byCat).forEach(cat=>{
-    const catDiv=document.createElement('div'); catDiv.className='lib-cat';
-    const h3=document.createElement('h3'); h3.textContent=cat; catDiv.appendChild(h3);
-    byCat[cat].forEach(play=>{
-      const item=document.createElement('div'); item.className='lib-item';
-      const img=document.createElement('img');
-      img.src=stepThumbDataURL(migrateStep(play.steps[0]), 80);
-      const meta=document.createElement('div'); meta.className='meta';
-      const nm=document.createElement('div'); nm.className='name'; nm.textContent=play.name;
-      const dt=document.createElement('div'); dt.className='date'; dt.textContent=new Date(play.updatedAt).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'});
-      meta.appendChild(nm); meta.appendChild(dt);
-      const share=document.createElement('div'); share.className='share'; share.title='Exportar como archivo';
-      share.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>';
-      share.addEventListener('click', e=>{
-        e.stopPropagation();
-        exportPlayAsFile(play);
-      });
-      const del=document.createElement('div'); del.className='del'; del.textContent='🗑';
-      del.addEventListener('click', async e=>{
-        e.stopPropagation();
-        if(!confirm('¿Eliminar "'+play.name+'"?')) return;
-        try{
-          const l=await loadLibrary();
-          delete l[play.id];
-          await saveLibrary(l);
-          document.getElementById('btnLibrary').click();
-        }catch(err){ toast('No se pudo eliminar, probá de nuevo'); }
-      });
-      item.appendChild(img); item.appendChild(meta); item.appendChild(share); item.appendChild(del);
-      item.addEventListener('click', ()=>{
-        pushHistory();
-        state.team=deepClone(play.team);
-        state.steps=migrateSteps(deepClone(play.steps));
-        state.currentStepIndex=0;
-        updateTeamPills();
-        renderAll();
-        modalLibrary.classList.remove('open');
-        toast('Jugada cargada: '+play.name);
-      });
-      catDiv.appendChild(item);
-    });
-    cont.appendChild(catDiv);
+  if(editingType==="transfer"){
+    if(!amount||amount<=0){ flash(document.getElementById("e-amount")); return; }
+    const [from,to] = document.getElementById("e-pay").value==="De Efectivo a Cuenta"
+      ? ["Efectivo","Cuenta"] : ["Cuenta","Efectivo"];
+    await backend.update(editingId,{amount,from,to,date});
+    closeModal(); return;
+  }
+
+  const pay=document.getElementById("e-pay").value;
+  const creditoOK = (editingType==="expense" && pay==="Crédito");
+  if(creditoOK){ if(isNaN(amount)||amount<0) amount=0; }
+  else if(!amount||amount<=0){ flash(document.getElementById("e-amount")); return; }
+  const patch={amount,description:document.getElementById("e-desc").value.trim(),date};
+  patch.payment=pay;                         // pago para ingreso y gasto
+  if(editingType==="expense")patch.category=document.getElementById("e-cat").value;
+  await backend.update(editingId,patch);
+  closeModal();
+};
+document.getElementById("delBtn").onclick=async ()=>{await backend.remove(editingId);closeModal();};
+
+/* =========================================================================
+   6)  PANTALLAS + ACCESO
+   ========================================================================= */
+function showApp(){document.getElementById("auth").classList.add("hidden");document.getElementById("appRoot").classList.remove("hidden");}
+function showAuth(){document.getElementById("appRoot").classList.add("hidden");document.getElementById("auth").classList.remove("hidden");}
+
+let authMode="login";
+function refreshAuthLabels(){
+  document.getElementById("authSub").textContent= authMode==="login"?"Ingresá para ver tus cuentas.":"Creá tu cuenta para empezar.";
+  document.getElementById("authBtn").textContent= authMode==="login"?"Ingresar":"Crear cuenta";
+  document.getElementById("authSwitch").innerHTML= authMode==="login"
+    ? '¿No tenés cuenta? <button id="switchMode">Crear una</button>'
+    : '¿Ya tenés cuenta? <button id="switchMode">Ingresar</button>';
+}
+function wireAuthScreen({onSubmit}){
+  const btn=document.getElementById("authBtn"),err=document.getElementById("authErr");
+  document.getElementById("authSwitch").addEventListener("click",ev=>{
+    if(ev.target.id!=="switchMode")return;
+    authMode= authMode==="login"?"signup":"login"; err.textContent=""; refreshAuthLabels();
   });
-});
-
-/* ============ EXPORTAR ============ */
-document.getElementById('btnExport').addEventListener('click', async ()=>{
-  render();
-  canvas.toBlob(async blob=>{
-    const fileName='jugada-pizarra-padel.png';
-    if(navigator.canShare && window.File){
-      try{
-        const file=new File([blob], fileName, {type:'image/png'});
-        if(navigator.canShare({files:[file]})){
-          await navigator.share({files:[file], title:'Jugada de pádel'});
-          return;
-        }
-      }catch(e){ /* seguimos con descarga */ }
-    }
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url; a.download=fileName; a.click();
-    setTimeout(()=>URL.revokeObjectURL(url), 4000);
-    toast('Imagen exportada');
-  }, 'image/png');
-});
-
-/* ============ MODALES GENÉRICOS ============ */
-document.querySelectorAll('[data-close]').forEach(btn=>{
-  btn.addEventListener('click', ()=>btn.closest('.modal-backdrop').classList.remove('open'));
-});
-document.querySelectorAll('.modal-backdrop').forEach(bd=>{
-  bd.addEventListener('click', e=>{ if(e.target===bd) bd.classList.remove('open'); });
-});
-
-/* ============ RENDER GLOBAL ============ */
-function renderAll(){
-  render();
-  refreshStepThumbs();
-  refreshBench();
+  btn.onclick=async ()=>{
+    const email=document.getElementById("a-email").value.trim(),pass=document.getElementById("a-pass").value;
+    err.textContent="";
+    if(!email||!pass){err.textContent="Completá correo y contraseña.";return;}
+    btn.disabled=true;btn.textContent="Un momento…";
+    try{ await onSubmit(authMode,email,pass); }
+    catch(ex){ err.textContent=authError(ex?.code||"");btn.disabled=false;refreshAuthLabels(); }
+  };
+}
+function authError(code){
+  const m={
+    "auth/invalid-email":"Ese correo no tiene un formato válido.",
+    "auth/missing-password":"Escribí tu contraseña.",
+    "auth/weak-password":"La contraseña necesita al menos 6 caracteres.",
+    "auth/email-already-in-use":"Ese correo ya tiene una cuenta. Probá ingresar.",
+    "auth/invalid-credential":"Correo o contraseña incorrectos.",
+    "auth/user-not-found":"No hay una cuenta con ese correo.",
+    "auth/wrong-password":"Contraseña incorrecta.",
+    "auth/too-many-requests":"Demasiados intentos. Esperá un momento y reintentá.",
+  };
+  return m[code]||"No se pudo completar. Revisá los datos e intentá de nuevo.";
 }
 
-/* ============ INICIO ============ */
-(async function init(){
-  await restoreDraft();
-  updateTeamPills();
-  resizeCanvas();
-  renderAll();
-})();
-
-})();
-</script>
-<script>
-  // Service worker real (archivo aparte en el mismo dominio): esto es lo que permite que
-  // la app funcione sin conexión una vez que se abrió al menos una vez con internet.
-  if('serviceWorker' in navigator){
-    window.addEventListener('load', ()=>{
-      navigator.serviceWorker.register('./sw.js').catch(err=>{
-        console.warn('No se pudo registrar el service worker (el modo offline no estará disponible):', err);
-      });
-    });
+/* =========================================================================
+   7)  ARRANQUE
+   ========================================================================= */
+async function boot(){
+  if(IS_DEMO){
+    document.getElementById("demoBanner").classList.remove("hidden");
+    backend=makeDemoBackend(); showApp(); renderAll();
+  }else{
+    backend=await makeFirebaseBackend();
   }
+}
+/* Registro del service worker (sólo funciona sobre HTTPS, como GitHub Pages).
+   En la vista previa no se registra; está envuelto para que no moleste. */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+boot();
 </script>
 </body>
 </html>
