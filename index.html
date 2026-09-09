@@ -43,6 +43,11 @@
   .auth-err{font-size:12.5px;color:var(--accent);min-height:16px;margin:2px 2px 10px}
   .auth-switch{text-align:center;font-size:13px;color:var(--muted);margin-top:16px}
   .auth-switch button{background:none;border:0;color:var(--brand);font:inherit;font-weight:600;cursor:pointer}
+  .auth-reset{text-align:center;margin-top:12px}
+  .auth-reset button{background:none;border:0;color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer;text-decoration:underline}
+  .toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:500;box-shadow:0 8px 24px rgba(28,27,23,.25);opacity:0;pointer-events:none;transition:.25s;z-index:40;max-width:90%;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--accent)}
 
   .demo-banner{background:#FBE9C6;color:#7a5a12;font-size:12px;text-align:center;padding:6px;font-weight:500}
 
@@ -162,6 +167,7 @@
     <div class="field"><label class="lab" for="a-pass">Contraseña</label><input id="a-pass" type="password" autocomplete="current-password" placeholder="••••••••" /></div>
     <div class="auth-err" id="authErr"></div>
     <button class="btn" id="authBtn">Ingresar</button>
+    <div class="auth-reset" id="authReset"><button id="resetBtn">¿Olvidaste tu contraseña?</button></div>
     <div class="auth-switch" id="authSwitch">¿No tenés cuenta? <button id="switchMode">Crear una</button></div>
   </div>
 </div>
@@ -303,6 +309,8 @@
   </nav>
 </div>
 
+<div id="toast" class="toast"></div>
+
 <!-- Modal edición -->
 <div class="modal" id="modal">
   <div class="sheet">
@@ -419,7 +427,8 @@ async function makeFirebaseBackend(){
   const V="https://www.gstatic.com/firebasejs/10.12.2";
   const { initializeApp }=await import(`${V}/firebase-app.js`);
   const { getAuth,setPersistence,browserLocalPersistence,onAuthStateChanged,
-          signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut }=await import(`${V}/firebase-auth.js`);
+          signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,
+          sendPasswordResetEmail }=await import(`${V}/firebase-auth.js`);
   const { getFirestore,collection,doc,addDoc,updateDoc,deleteDoc,setDoc,getDoc,
           onSnapshot,query,orderBy,serverTimestamp }=await import(`${V}/firebase-firestore.js`);
 
@@ -443,10 +452,13 @@ async function makeFirebaseBackend(){
     });
   }
 
-  wireAuthScreen({onSubmit:async (mode,email,pass)=>{
-    if(mode==="signup")await createUserWithEmailAndPassword(auth,email,pass);
-    else await signInWithEmailAndPassword(auth,email,pass);
-  }});
+  wireAuthScreen({
+    onSubmit:async (mode,email,pass)=>{
+      if(mode==="signup")await createUserWithEmailAndPassword(auth,email,pass);
+      else await signInWithEmailAndPassword(auth,email,pass);
+    },
+    onReset:async (email)=>{ await sendPasswordResetEmail(auth,email); }
+  });
   document.getElementById("logoutBtn").classList.remove("hidden");
   document.getElementById("logoutBtn").onclick=()=>signOut(auth);
 
@@ -632,7 +644,7 @@ function renderAjustes(){
     const removable=!DEFAULT_CATEGORIES.includes(c);
     const el=document.createElement("span");el.className="chip";
     el.innerHTML=`<span class="sw" style="background:${catStyle(c).color}"></span>${c}`+(removable?`<button title="Quitar">✕</button>`:"");
-    if(removable)el.querySelector("button").onclick=()=>{store.config.categories=store.config.categories.filter(x=>x!==c);backend.persistConfig();renderAll();};
+    if(removable)el.querySelector("button").onclick=()=>{store.config.categories=store.config.categories.filter(x=>x!==c);safe(()=>backend.persistConfig());renderAll();};
     chips.appendChild(el);
   }
   fillSelect(document.getElementById("newRuleCat"),store.config.categories);
@@ -642,7 +654,7 @@ function renderAjustes(){
     el.innerHTML=`<span class="kw">${escapeHtml(r.kw)}</span><span class="arrow">→</span>
       <span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${catStyle(r.cat).color}"></span>
       <span class="cat">${r.cat}</span><button title="Quitar">✕</button>`;
-    el.querySelector("button").onclick=()=>{store.config.rules.splice(idx,1);backend.persistConfig();renderAjustes();};
+    el.querySelector("button").onclick=()=>{store.config.rules.splice(idx,1);safe(()=>backend.persistConfig());renderAjustes();};
     rl.appendChild(el);
   });
 }
@@ -673,6 +685,19 @@ descEl.addEventListener("input",()=>{
 });
 function flash(el){el.style.borderColor="var(--accent)";setTimeout(()=>el.style.borderColor="",600);el.focus();}
 
+/* Aviso breve al pie. safe() ejecuta una operación de datos y avisa si falla,
+   para que nada quede sin guardar en silencio (ej. sin conexión). */
+let toastTimer;
+function toast(msg,isErr){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className="toast show"+(isErr?" err":"");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{t.className="toast"+(isErr?" err":"");},2600);
+}
+async function safe(fn,okMsg){
+  try{ await fn(); if(okMsg) toast(okMsg); return true; }
+  catch(ex){ toast("No se pudo guardar. Revisá tu conexión e intentá de nuevo.",true); return false; }
+}
+
 // Mostrar el aviso del modo ₲0 solo cuando el pago es Crédito
 const fPayEl=document.getElementById("f-pay");
 fPayEl.addEventListener("change",()=>{
@@ -684,8 +709,9 @@ document.getElementById("saveBtn").onclick=async ()=>{
   let amount=parseFloat(document.getElementById("f-amount").value);
   if(pay==="Crédito"){ if(isNaN(amount)||amount<0) amount=0; }   // crédito: ₲0 válido (registro sin pagar)
   else if(!amount||amount<=0){ flash(document.getElementById("f-amount")); return; }
-  await backend.add({type:"expense",amount,description:descEl.value.trim(),category:catEl.value,
-    payment:pay,date:document.getElementById("f-date").value});
+  const ok=await safe(()=>backend.add({type:"expense",amount,description:descEl.value.trim(),category:catEl.value,
+    payment:pay,date:document.getElementById("f-date").value}), "Gasto guardado");
+  if(!ok)return;
   document.getElementById("f-amount").value="";descEl.value="";hint.className="cat-hint";userTouchedCat=false;
   document.querySelector('nav button[data-go="mov"]').click();
 };
@@ -693,8 +719,9 @@ document.getElementById("saveBtn").onclick=async ()=>{
 document.getElementById("saveIncomeBtn").onclick=async ()=>{
   const amount=parseFloat(document.getElementById("i-amount").value);
   if(!amount||amount<=0){flash(document.getElementById("i-amount"));return;}
-  await backend.add({type:"income",amount,description:document.getElementById("i-desc").value.trim(),
-    payment:document.getElementById("i-pay").value,date:document.getElementById("i-date").value});
+  const ok=await safe(()=>backend.add({type:"income",amount,description:document.getElementById("i-desc").value.trim(),
+    payment:document.getElementById("i-pay").value,date:document.getElementById("i-date").value}), "Ingreso guardado");
+  if(!ok)return;
   document.getElementById("i-amount").value="";document.getElementById("i-desc").value="";
 };
 
@@ -703,18 +730,19 @@ document.getElementById("saveTransferBtn").onclick=async ()=>{
   if(!amount||amount<=0){flash(document.getElementById("t-amount"));return;}
   const [from,to] = document.getElementById("t-dir").value==="De Efectivo a Cuenta"
     ? ["Efectivo","Cuenta"] : ["Cuenta","Efectivo"];
-  await backend.add({type:"transfer",amount,from,to,date:document.getElementById("t-date").value});
+  const ok=await safe(()=>backend.add({type:"transfer",amount,from,to,date:document.getElementById("t-date").value}), "Traspaso registrado");
+  if(!ok)return;
   document.getElementById("t-amount").value="";
   document.querySelector('nav button[data-go="mov"]').click();
 };
 
 document.getElementById("addCatBtn").onclick=()=>{
   const v=document.getElementById("newCat").value.trim();
-  if(v&&!store.config.categories.includes(v)){store.config.categories.splice(store.config.categories.length-1,0,v);document.getElementById("newCat").value="";backend.persistConfig();renderAll();}
+  if(v&&!store.config.categories.includes(v)){store.config.categories.splice(store.config.categories.length-1,0,v);document.getElementById("newCat").value="";safe(()=>backend.persistConfig());renderAll();}
 };
 document.getElementById("addRuleBtn").onclick=()=>{
   const kw=document.getElementById("newKw").value.trim(),cat=document.getElementById("newRuleCat").value;
-  if(kw){store.config.rules.unshift({kw,cat});document.getElementById("newKw").value="";backend.persistConfig();renderAjustes();}
+  if(kw){store.config.rules.unshift({kw,cat});document.getElementById("newKw").value="";safe(()=>backend.persistConfig());renderAjustes();}
 };
 
 /* Exportar los movimientos del mes visible a CSV (se abre en Excel;
@@ -746,7 +774,7 @@ document.getElementById("exportBtn").onclick=exportCSV;
 
 function openEdit(id){
   const e=store.tx.find(x=>x.id===id);if(!e)return;
-  editingId=id;editingType=e.type;
+  editingId=id;editingType=e.type;resetDel();
   document.getElementById("e-amount").value=e.amount;
   document.getElementById("e-date").value=e.date;
   const catField=document.getElementById("e-cat-field");
@@ -780,7 +808,7 @@ function openEdit(id){
   }
   document.getElementById("modal").classList.add("show");
 }
-function closeModal(){document.getElementById("modal").classList.remove("show");editingId=null;}
+function closeModal(){document.getElementById("modal").classList.remove("show");editingId=null;resetDel();}
 document.getElementById("modal").addEventListener("click",ev=>{if(ev.target.id==="modal")closeModal();});
 document.getElementById("updateBtn").onclick=async ()=>{
   let amount=parseFloat(document.getElementById("e-amount").value);
@@ -790,8 +818,8 @@ document.getElementById("updateBtn").onclick=async ()=>{
     if(!amount||amount<=0){ flash(document.getElementById("e-amount")); return; }
     const [from,to] = document.getElementById("e-pay").value==="De Efectivo a Cuenta"
       ? ["Efectivo","Cuenta"] : ["Cuenta","Efectivo"];
-    await backend.update(editingId,{amount,from,to,date});
-    closeModal(); return;
+    if(await safe(()=>backend.update(editingId,{amount,from,to,date}),"Cambios guardados")) closeModal();
+    return;
   }
 
   const pay=document.getElementById("e-pay").value;
@@ -801,10 +829,25 @@ document.getElementById("updateBtn").onclick=async ()=>{
   const patch={amount,description:document.getElementById("e-desc").value.trim(),date};
   patch.payment=pay;                         // pago para ingreso y gasto
   if(editingType==="expense")patch.category=document.getElementById("e-cat").value;
-  await backend.update(editingId,patch);
-  closeModal();
+  if(await safe(()=>backend.update(editingId,patch),"Cambios guardados")) closeModal();
 };
-document.getElementById("delBtn").onclick=async ()=>{await backend.remove(editingId);closeModal();};
+
+/* Borrado con confirmación: el primer toque arma, el segundo elimina. */
+let delArmed=false, delTimer=null;
+const delBtn=document.getElementById("delBtn");
+function resetDel(){ delArmed=false; clearTimeout(delTimer); delBtn.textContent="Eliminar"; delBtn.style.background=""; delBtn.style.color=""; delBtn.style.borderColor=""; }
+delBtn.onclick=async ()=>{
+  if(!delArmed){
+    delArmed=true; delBtn.textContent="¿Eliminar de verdad?";
+    delBtn.style.background="var(--accent)"; delBtn.style.color="#fff"; delBtn.style.borderColor="var(--accent)";
+    delTimer=setTimeout(resetDel,3000);
+    return;
+  }
+  clearTimeout(delTimer);
+  const id=editingId;
+  if(await safe(()=>backend.remove(id),"Movimiento eliminado")) closeModal();
+  else resetDel();
+};
 
 /* =========================================================================
    6)  PANTALLAS + ACCESO
@@ -816,19 +859,30 @@ let authMode="login";
 function refreshAuthLabels(){
   document.getElementById("authSub").textContent= authMode==="login"?"Ingresá para ver tus cuentas.":"Creá tu cuenta para empezar.";
   document.getElementById("authBtn").textContent= authMode==="login"?"Ingresar":"Crear cuenta";
+  document.getElementById("authReset").style.display= authMode==="login"?"block":"none";
   document.getElementById("authSwitch").innerHTML= authMode==="login"
     ? '¿No tenés cuenta? <button id="switchMode">Crear una</button>'
     : '¿Ya tenés cuenta? <button id="switchMode">Ingresar</button>';
 }
-function wireAuthScreen({onSubmit}){
+function wireAuthScreen({onSubmit,onReset}){
   const btn=document.getElementById("authBtn"),err=document.getElementById("authErr");
   document.getElementById("authSwitch").addEventListener("click",ev=>{
     if(ev.target.id!=="switchMode")return;
-    authMode= authMode==="login"?"signup":"login"; err.textContent=""; refreshAuthLabels();
+    authMode= authMode==="login"?"signup":"login"; err.textContent=""; err.style.color=""; refreshAuthLabels();
   });
+  document.getElementById("resetBtn").onclick=async ()=>{
+    const email=document.getElementById("a-email").value.trim();
+    err.style.color="";
+    if(!email){ err.textContent="Escribí tu correo arriba y volvé a tocar."; return; }
+    try{
+      await onReset(email);
+      err.style.color="var(--brand)";
+      err.textContent="Te enviamos un correo para restablecer la contraseña.";
+    }catch(ex){ err.style.color=""; err.textContent=authError(ex?.code||""); }
+  };
   btn.onclick=async ()=>{
     const email=document.getElementById("a-email").value.trim(),pass=document.getElementById("a-pass").value;
-    err.textContent="";
+    err.textContent=""; err.style.color="";
     if(!email||!pass){err.textContent="Completá correo y contraseña.";return;}
     btn.disabled=true;btn.textContent="Un momento…";
     try{ await onSubmit(authMode,email,pass); }
